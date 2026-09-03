@@ -1,0 +1,139 @@
+// Prisma schema for Social Cup (PostgreSQL)
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  CUSTOMER
+  BARISTA
+  ADMIN
+}
+
+enum AccountStatus {
+  VISITOR
+  MEMBER
+  EXPIRED
+  CANCELED
+}
+
+enum RedemptionStatus {
+  PENDING
+  REDEEMED
+  EXPIRED
+  VOIDED
+}
+
+enum PayoutStatus {
+  PENDING
+  PAID
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
+  name          String
+  role          Role           @default(CUSTOMER)
+  accountStatus AccountStatus  @default(VISITOR)
+  credits       Int            @default(22)
+  neighborhood  String?        @default("Bishop Arts")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  redemptions   Redemption[]
+  reviews       Review[]
+}
+
+model Cafe {
+  id           String         @id
+  name         String
+  neighborhood String
+  address      String
+  hours        String
+  isOpen       Boolean        @default(true)
+  rating       Float          @default(4.8)
+  priceTier    String         @default("$$")
+  payoutRate   Float          @default(3.50)
+  pinCode      String         @default("4821")
+  isFeatured   Boolean        @default(false)
+  vibeTags     String[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  drinks       Drink[]
+  redemptions  Redemption[]
+  payouts      Payout[]
+  reviews      Review[]
+}
+
+model Drink {
+  id           String         @id
+  cafeId       String
+  name         String
+  description  String
+  creditsCost  Int
+  retailPrice  Float
+  rating       Float          @default(4.8)
+  isSignature  Boolean        @default(false)
+  isEnabled    Boolean        @default(true)
+  category     String         @default("Espresso drink")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  cafe         Cafe           @relation(fields: [cafeId], references: [id], onDelete: Cascade)
+  redemptions  Redemption[]
+  reviews      Review[]
+}
+
+model Redemption {
+  id              String           @id @default(uuid())
+  code            String
+  backupCode      String
+  userId          String
+  cafeId          String
+  drinkId         String
+  creditsDeducted Int
+  status          RedemptionStatus @default(PENDING)
+  expiresAt       DateTime
+  redeemedAt      DateTime?
+  voidReason      String?
+  createdAt       DateTime         @default(now())
+
+  user            User             @relation(fields: [userId], references: [id])
+  cafe            Cafe             @relation(fields: [cafeId], references: [id])
+  drink           Drink            @relation(fields: [drinkId], references: [id])
+}
+
+model Payout {
+  id                String       @id @default(uuid())
+  cafeId            String
+  billingMonth      String
+  totalRedemptions  Int
+  totalCredits      Int
+  amountOwed        Float
+  status            PayoutStatus @default(PENDING)
+  paidAt            DateTime?
+  createdAt         DateTime     @default(now())
+
+  cafe              Cafe         @relation(fields: [cafeId], references: [id])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  userId    String
+  cafeId    String
+  drinkId   String
+  stars     Int
+  note      String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  cafe      Cafe     @relation(fields: [cafeId], references: [id])
+  drink     Drink    @relation(fields: [drinkId], references: [id])
+}
