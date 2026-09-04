@@ -971,30 +971,10 @@ export const FAIL_REASONS: Record<FailReasonKey, FailReason> = {
     title: 'Code expired',
     message: 'This code was only valid for 5 minutes. Generate a new one from the cafe page.',
   },
-  used: {
-    label: 'Already used',
-    title: 'Code already used',
-    message: 'This code was already redeemed. Generate a new one if you still want this drink.',
-  },
-  wrongCafe: {
-    label: 'Wrong cafe',
-    title: 'Wrong cafe',
-    message: 'This code was generated for a different cafe.',
-  },
-  insufficient: {
-    label: 'Insufficient credits',
-    title: 'Not enough credits',
-    message: "You don't have enough credits left this month for this drink.",
-  },
-  network: {
-    label: 'Network error',
-    title: 'Connection lost',
-    message: "We couldn't reach the server. Check your connection and try again.",
-  },
-  invalid: {
-    label: 'Invalid code',
-    title: 'Invalid code',
-    message: "That code doesn't match any pending redemption.",
+  canceled: {
+    label: 'Canceled',
+    title: 'Redemption canceled',
+    message: 'You canceled this code before it was scanned. No credits were used.',
   },
 };
 

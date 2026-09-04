@@ -10,7 +10,7 @@ export type RootStackParamList = {
   RedeemConfirm: { cafeId: string; drinkId: string };
   RedeemCode: { cafeId: string; drinkId: string };
   RedeemSuccess: { cafeId: string; drinkId: string };
-  RedeemFailed: { cafeId: string };
+  RedeemFailed: { cafeId: string; reason?: 'expired' | 'canceled' };
   Membership: undefined;
   Payment: undefined;
   Social: undefined;

@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
+import { useAppStore } from '../store/useAppStore';
+import { Colors } from '../theme/colors';
 
 import { TabNavigator } from './TabNavigator';
 import { WelcomeScreen } from '../screens/auth/WelcomeScreen';
@@ -23,9 +26,23 @@ import { SocialScreen } from '../screens/social/SocialScreen';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const RootNavigator: React.FC = () => {
+  const { user, authLoading, bootstrapAuth } = useAppStore();
+
+  useEffect(() => {
+    bootstrapAuth();
+  }, [bootstrapAuth]);
+
+  if (authLoading) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color={Colors.gold} />
+      </View>
+    );
+  }
+
   return (
     <Stack.Navigator
-      initialRouteName="Welcome"
+      initialRouteName={user ? 'MainTabs' : 'Welcome'}
       screenOptions={{
         headerShown: false,
         animation: 'slide_from_right',
@@ -60,3 +77,12 @@ export const RootNavigator: React.FC = () => {
     </Stack.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.background,
+  },
+});

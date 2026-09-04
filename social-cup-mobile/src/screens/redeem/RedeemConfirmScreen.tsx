@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -5,27 +6,51 @@ import {
   StyleSheet,
   SafeAreaView,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { useAppStore } from '../../store/useAppStore';
-import { CAFES } from '../../data/mockData';
+import { api, ApiCafe } from '../../api/client';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RedeemConfirm'>;
 
 export const RedeemConfirmScreen: React.FC<Props> = ({ route, navigation }) => {
   const { cafeId, drinkId } = route.params;
-  const cafe = CAFES.find((c) => c.id === cafeId) || CAFES[0];
-  const drink = cafe.drinks.find((d) => d.id === drinkId) || cafe.drinks[0];
-  const { credits, generateRedemptionCode } = useAppStore();
+  const { user, getCafe, generateRedemption } = useAppStore();
+  const [cafe, setCafe] = useState<ApiCafe | undefined>(getCafe(cafeId));
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const balanceAfter = Math.max(0, credits - drink.credits);
+  useEffect(() => {
+    if (!cafe) api.getCafe(cafeId).then(setCafe);
+  }, [cafeId]);
 
-  const handleConfirm = () => {
-    generateRedemptionCode(drink.credits);
-    navigation.navigate('RedeemCode', { cafeId, drinkId });
+  const drink = cafe?.drinks.find((d) => d.id === drinkId);
+  const credits = user?.credits ?? 0;
+  const balanceAfter = drink ? Math.max(0, credits - drink.creditsCost) : credits;
+
+  const handleConfirm = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      await generateRedemption(cafeId, drinkId);
+      navigation.navigate('RedeemCode', { cafeId, drinkId });
+    } catch (err: any) {
+      setError(err.message || 'Could not generate a code — please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  if (!cafe || !drink) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <ActivityIndicator style={{ marginTop: 60 }} color={Colors.gold} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -62,7 +87,7 @@ export const RedeemConfirmScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.breakdownCard}>
           <View style={styles.breakdownRow}>
             <Text style={styles.label}>Credit cost</Text>
-            <Text style={styles.valueBold}>{drink.credits} credits</Text>
+            <Text style={styles.valueBold}>{drink.creditsCost} credits</Text>
           </View>
 
           <View style={styles.breakdownRow}>
@@ -79,11 +104,18 @@ export const RedeemConfirmScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
 
         <Text style={styles.validityNotice}>
-          Your code will be valid for 5 minutes once generated.
+          Your code will be valid for 5 minutes once generated. Credits are only deducted
+          when the barista scans it.
         </Text>
 
-        <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm}>
-          <Text style={styles.confirmBtnText}>Confirm & generate code</Text>
+        {error && <Text style={styles.errorText}>{error}</Text>}
+
+        <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} disabled={submitting}>
+          {submitting ? (
+            <ActivityIndicator color={Colors.ink} />
+          ) : (
+            <Text style={styles.confirmBtnText}>Confirm & generate code</Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -182,6 +214,11 @@ const styles = StyleSheet.create({
   validityNotice: {
     fontSize: 12,
     color: Colors.mute,
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: 12,
+    color: Colors.danger,
     textAlign: 'center',
   },
   confirmBtn: {

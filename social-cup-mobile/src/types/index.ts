@@ -1,5 +1,5 @@
-export type AccountType = 'visitor' | 'member' | 'expired' | 'canceled';
-
+// These mock-data types back only the Social/Meetup screen, which is Phase 2
+// (out of scope per the PRD) and intentionally not wired to the real API.
 export interface Drink {
   id: string;
   name: string;
@@ -28,15 +28,6 @@ export interface Cafe {
   gallery?: string[];
 }
 
-export interface DiaryEntry {
-  id: string;
-  cafeId: string;
-  drinkId: string;
-  date: string;
-  stars: number;
-  note?: string;
-}
-
 export interface ActivityItem {
   id: string;
   name: string;
@@ -44,7 +35,7 @@ export interface ActivityItem {
   when: string;
 }
 
-export type FailReasonKey = 'expired' | 'used' | 'wrongCafe' | 'insufficient' | 'network' | 'invalid';
+export type FailReasonKey = 'expired' | 'canceled';
 
 export interface FailReason {
   label: string;

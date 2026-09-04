@@ -16,8 +16,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Membership'>;
 const BENEFITS = [
   '30 drink credits every month at any partner cafe',
   'Priority access to new signature drinks',
-  'Save cafes and track your ratings in one diary',
-  'Invite friends to meet at a suggested midpoint cafe',
+  'A private drink diary that tracks every rating you leave',
+  'Redeem at any cafe in the network with a code, no reservations',
 ];
 
 export const MembershipScreen: React.FC<Props> = ({ navigation }) => {

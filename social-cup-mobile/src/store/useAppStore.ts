@@ -1,243 +1,241 @@
 import { create } from 'zustand';
-import { AccountType, DiaryEntry, FailReasonKey } from '../types';
-import { CAFES } from '../data/mockData';
+import { api, ApiUser, ApiCafe, ApiDiaryEntry, ApiRedemption, getToken } from '../api/client';
 
 interface AppState {
-  // User & Account
-  account: AccountType;
-  userName: string;
-  credits: number;
-  homeNeighborhood: string;
-  preferences: string[];
+  // ---- Auth / session (backed by the real API) ----
+  user: ApiUser | null;
+  authLoading: boolean;
+  authError: string | null;
+  bootstrapAuth: () => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+  updateProfile: (data: { name?: string; neighborhood?: string; preferences?: string[] }) => Promise<void>;
+  subscribe: () => Promise<void>;
+  cancelMembership: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
+
+  // ---- Cafes (fetched from the real API) ----
+  cafes: ApiCafe[];
+  cafesLoading: boolean;
+  fetchCafes: (params?: { neighborhood?: string; search?: string }) => Promise<void>;
+  getCafe: (id: string) => ApiCafe | undefined;
+
+  // ---- Drink diary (fetched from the real API) ----
+  diary: ApiDiaryEntry[];
+  diaryLoading: boolean;
+  fetchDiary: () => Promise<void>;
+
+  // ---- Active redemption (the member's live code, backed by the API) ----
+  activeRedemption: ApiRedemption | null;
+  generateRedemption: (cafeId: string, drinkId: string) => Promise<ApiRedemption>;
+  cancelActiveRedemption: () => Promise<void>;
+  refreshActiveRedemption: () => Promise<ApiRedemption | null>;
+
+  // ---- Onboarding draft (collected before the profile is saved) ----
+  draftPreferences: string[];
+  toggleDraftPreference: (pref: string) => void;
+  draftNeighborhood: string;
+  setDraftNeighborhood: (n: string) => void;
+
+  // ---- Local-only UI preferences (no backend — out of scope for phase 1) ----
   locationAllowed: boolean | null;
+  setLocationAllowed: (allowed: boolean | null) => void;
   offlineSim: boolean;
+  setOfflineSim: (offline: boolean) => void;
   savedCafeIds: string[];
-  diaryEntries: DiaryEntry[];
+  toggleSaveCafe: (cafeId: string) => void;
+  // Connections/meetup are Phase 2 (out of scope) per the PRD — kept as inert local
+  // state only so the existing Social screen still renders; never backed by the API.
+  connectionsSelected: Record<string, boolean>;
+  toggleConnection: (name: string) => void;
+  meetupSent: boolean;
+  sendMeetupInvite: () => void;
+  resetMeetupInvite: () => void;
   notifReminders: boolean;
   notifRenewals: boolean;
+  toggleNotifReminders: () => void;
+  toggleNotifRenewals: () => void;
 
-  // Social & Meetup
-  connectionsSelected: Record<string, boolean>;
-  meetupSent: boolean;
-
-  // Active Redemption
-  selectedCafeId: string;
-  selectedDrinkId: string | null;
-  redeemCode: string;
-  backupCode: string;
-  timerSeconds: number;
-  failReasonKey: FailReasonKey;
-
-  // Rating Modal
+  // ---- Rate modal ----
   rateModalOpen: boolean;
   rateCafeId: string | null;
   rateDrinkId: string | null;
   rateStars: number;
   rateNote: string;
-
-  // Actions
-  setAccount: (account: AccountType) => void;
-  setCredits: (credits: number) => void;
-  setUserName: (name: string) => void;
-  setHomeNeighborhood: (neighborhood: string) => void;
-  togglePreference: (pref: string) => void;
-  setLocationAllowed: (allowed: boolean | null) => void;
-  setOfflineSim: (offline: boolean) => void;
-  toggleSaveCafe: (cafeId: string) => void;
-
-  // Redemption actions
-  setSelectedCafeId: (cafeId: string) => void;
-  setSelectedDrinkId: (drinkId: string | null) => void;
-  generateRedemptionCode: (drinkCredits: number) => void;
-  cancelRedemptionCode: (drinkCredits: number) => void;
-  tickTimer: () => void;
-  resetTimer: () => void;
-  setFailReasonKey: (key: FailReasonKey) => void;
-
-  // Diary & Rating actions
   openRateModal: (cafeId: string, drinkId: string, stars?: number, note?: string) => void;
   closeRateModal: () => void;
   setRateStars: (stars: number) => void;
   setRateNote: (note: string) => void;
-  submitRating: () => void;
-
-  // Notification toggles
-  toggleNotifReminders: () => void;
-  toggleNotifRenewals: () => void;
-
-  // Social actions
-  toggleConnection: (name: string) => void;
-  sendMeetupInvite: () => void;
-  resetMeetupInvite: () => void;
+  submitRating: () => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
-  // Defaults matching prototype
-  account: 'visitor',
-  userName: 'Jordan Avery',
-  credits: 22,
-  homeNeighborhood: 'Bishop Arts',
-  preferences: ['Specialty brew', 'Cold brew'],
-  locationAllowed: true,
-  offlineSim: false,
-  savedCafeIds: ['true-black', 'concu', 'subko-coffee'],
-  diaryEntries: [
-    {
-      id: 'd1',
-      cafeId: 'roastery-coffee-house',
-      drinkId: 'cascara-brew',
-      date: 'Aug 28',
-      stars: 5,
-      note: 'The best cascara in town.',
-    },
-    {
-      id: 'd2',
-      cafeId: 'true-black',
-      drinkId: 'sea-salt-cold-brew',
-      date: 'Aug 21',
-      stars: 5,
-      note: 'Signature sea salt caramel cold brew.',
-    },
-    {
-      id: 'd3',
-      cafeId: 'concu',
-      drinkId: 'valrhona-hot-chocolate',
-      date: 'Aug 14',
-      stars: 5,
-      note: 'Unmatched chocolate quality.',
-    },
-  ],
-  notifReminders: true,
-  notifRenewals: true,
+  user: null,
+  authLoading: true,
+  authError: null,
 
-  connectionsSelected: {},
-  meetupSent: false,
+  bootstrapAuth: async () => {
+    set({ authLoading: true });
+    const token = await getToken();
+    if (!token) {
+      set({ user: null, authLoading: false });
+      return;
+    }
+    try {
+      const user = await api.me();
+      set({ user, authLoading: false });
+    } catch {
+      await api.logout();
+      set({ user: null, authLoading: false });
+    }
+  },
 
-  selectedCafeId: 'roastery-coffee-house',
-  selectedDrinkId: 'cascara-brew',
-  redeemCode: '4821',
-  backupCode: '7K9X2B',
-  timerSeconds: 300,
-  failReasonKey: 'expired',
+  login: async (email, password) => {
+    set({ authError: null });
+    try {
+      const user = await api.login(email, password);
+      set({ user });
+    } catch (err: any) {
+      set({ authError: err.message || 'Login failed' });
+      throw err;
+    }
+  },
 
-  rateModalOpen: false,
-  rateCafeId: null,
-  rateDrinkId: null,
-  rateStars: 0,
-  rateNote: '',
+  register: async (email, password, name) => {
+    set({ authError: null });
+    try {
+      const user = await api.register(email, password, name);
+      set({ user });
+    } catch (err: any) {
+      set({ authError: err.message || 'Sign up failed' });
+      throw err;
+    }
+  },
 
-  setAccount: (account) =>
-    set({
-      account,
-      credits: account === 'member' ? 30 : account === 'visitor' ? 22 : 0,
-    }),
-  setCredits: (credits) => set({ credits }),
-  setUserName: (userName) => set({ userName }),
-  setHomeNeighborhood: (homeNeighborhood) => set({ homeNeighborhood }),
-  togglePreference: (pref) =>
+  logout: async () => {
+    await api.logout();
+    set({ user: null, activeRedemption: null, diary: [] });
+  },
+
+  refreshUser: async () => {
+    const user = await api.me();
+    set({ user });
+  },
+
+  updateProfile: async (data) => {
+    const user = await api.updateProfile(data);
+    set({ user });
+  },
+
+  subscribe: async () => {
+    const user = await api.subscribe();
+    set({ user });
+  },
+
+  cancelMembership: async () => {
+    const user = await api.cancelMembership();
+    set({ user });
+  },
+
+  deleteAccount: async () => {
+    await api.deleteAccount();
+    set({ user: null, activeRedemption: null, diary: [] });
+  },
+
+  cafes: [],
+  cafesLoading: false,
+  fetchCafes: async (params) => {
+    set({ cafesLoading: true });
+    try {
+      const cafes = await api.listCafes(params);
+      set({ cafes, cafesLoading: false });
+    } catch {
+      set({ cafesLoading: false });
+    }
+  },
+  getCafe: (id) => get().cafes.find((c) => c.id === id),
+
+  diary: [],
+  diaryLoading: false,
+  fetchDiary: async () => {
+    set({ diaryLoading: true });
+    try {
+      const diary = await api.getDiary();
+      set({ diary, diaryLoading: false });
+    } catch {
+      set({ diaryLoading: false });
+    }
+  },
+
+  activeRedemption: null,
+  generateRedemption: async (cafeId, drinkId) => {
+    const { redemption } = await api.generateRedemption(cafeId, drinkId);
+    set({ activeRedemption: redemption });
+    return redemption;
+  },
+  cancelActiveRedemption: async () => {
+    const current = get().activeRedemption;
+    if (current) await api.cancelRedemption(current.id);
+    set({ activeRedemption: null });
+  },
+  refreshActiveRedemption: async () => {
+    if (!get().user) return null;
+    const redemption = await api.getActiveRedemption();
+    set({ activeRedemption: redemption });
+    return redemption;
+  },
+
+  draftPreferences: [],
+  toggleDraftPreference: (pref) =>
     set((state) => ({
-      preferences: state.preferences.includes(pref)
-        ? state.preferences.filter((p) => p !== pref)
-        : [...state.preferences, pref],
+      draftPreferences: state.draftPreferences.includes(pref)
+        ? state.draftPreferences.filter((p) => p !== pref)
+        : [...state.draftPreferences, pref],
     })),
+  draftNeighborhood: 'Bishop Arts',
+  setDraftNeighborhood: (draftNeighborhood) => set({ draftNeighborhood }),
+
+  locationAllowed: null,
   setLocationAllowed: (locationAllowed) => set({ locationAllowed }),
+  offlineSim: false,
   setOfflineSim: (offlineSim) => set({ offlineSim }),
+  savedCafeIds: [],
   toggleSaveCafe: (cafeId) =>
     set((state) => ({
       savedCafeIds: state.savedCafeIds.includes(cafeId)
         ? state.savedCafeIds.filter((id) => id !== cafeId)
         : [...state.savedCafeIds, cafeId],
     })),
+  connectionsSelected: {},
+  toggleConnection: (name) =>
+    set((state) => ({ connectionsSelected: { ...state.connectionsSelected, [name]: !state.connectionsSelected[name] } })),
+  meetupSent: false,
+  sendMeetupInvite: () => set({ meetupSent: true }),
+  resetMeetupInvite: () => set({ meetupSent: false }),
 
-  setSelectedCafeId: (selectedCafeId) => set({ selectedCafeId }),
-  setSelectedDrinkId: (selectedDrinkId) => set({ selectedDrinkId }),
-  generateRedemptionCode: (drinkCredits) => {
-    const randomCode = String(Math.floor(1000 + Math.random() * 9000));
-    const randomBackup = Math.random().toString(36).substring(2, 8).toUpperCase();
-    set((state) => ({
-      redeemCode: randomCode,
-      backupCode: randomBackup,
-      credits: Math.max(0, state.credits - drinkCredits),
-      timerSeconds: 300,
-    }));
-  },
-  cancelRedemptionCode: (drinkCredits) => {
-    set((state) => ({
-      credits: state.credits + drinkCredits,
-    }));
-  },
-  tickTimer: () =>
-    set((state) => ({
-      timerSeconds: Math.max(0, state.timerSeconds - 1),
-    })),
-  resetTimer: () => set({ timerSeconds: 300 }),
-  setFailReasonKey: (failReasonKey) => set({ failReasonKey }),
-
-  openRateModal: (cafeId, drinkId, stars = 0, note = '') =>
-    set({
-      rateModalOpen: true,
-      rateCafeId: cafeId,
-      rateDrinkId: drinkId,
-      rateStars: stars,
-      rateNote: note,
-    }),
-  closeRateModal: () =>
-    set({
-      rateModalOpen: false,
-      rateCafeId: null,
-      rateDrinkId: null,
-      rateStars: 0,
-      rateNote: '',
-    }),
-  setRateStars: (rateStars) => set({ rateStars }),
-  setRateNote: (rateNote) => set({ rateNote }),
-  submitRating: () => {
-    const { rateCafeId, rateDrinkId, rateStars, rateNote, diaryEntries } = get();
-    if (!rateCafeId || !rateDrinkId) return;
-
-    const existingIndex = diaryEntries.findIndex(
-      (e) => e.cafeId === rateCafeId && e.drinkId === rateDrinkId
-    );
-
-    let updated = [...diaryEntries];
-    if (existingIndex >= 0) {
-      updated[existingIndex] = {
-        ...updated[existingIndex],
-        stars: rateStars,
-        note: rateNote,
-        date: 'Today',
-      };
-    } else {
-      updated.unshift({
-        id: 'd_' + Date.now(),
-        cafeId: rateCafeId,
-        drinkId: rateDrinkId,
-        date: 'Today',
-        stars: rateStars,
-        note: rateNote,
-      });
-    }
-
-    set({
-      diaryEntries: updated,
-      rateModalOpen: false,
-      rateCafeId: null,
-      rateDrinkId: null,
-      rateStars: 0,
-      rateNote: '',
-    });
-  },
-
+  notifReminders: true,
+  notifRenewals: true,
   toggleNotifReminders: () => set((state) => ({ notifReminders: !state.notifReminders })),
   toggleNotifRenewals: () => set((state) => ({ notifRenewals: !state.notifRenewals })),
 
-  toggleConnection: (name) =>
-    set((state) => ({
-      connectionsSelected: {
-        ...state.connectionsSelected,
-        [name]: !state.connectionsSelected[name],
-      },
-    })),
-  sendMeetupInvite: () => set({ meetupSent: true }),
-  resetMeetupInvite: () => set({ meetupSent: false }),
+  rateModalOpen: false,
+  rateCafeId: null,
+  rateDrinkId: null,
+  rateStars: 0,
+  rateNote: '',
+  openRateModal: (cafeId, drinkId, stars = 0, note = '') =>
+    set({ rateModalOpen: true, rateCafeId: cafeId, rateDrinkId: drinkId, rateStars: stars, rateNote: note || '' }),
+  closeRateModal: () => set({ rateModalOpen: false, rateCafeId: null, rateDrinkId: null, rateStars: 0, rateNote: '' }),
+  setRateStars: (rateStars) => set({ rateStars }),
+  setRateNote: (rateNote) => set({ rateNote }),
+  submitRating: async () => {
+    const { rateCafeId, rateDrinkId, rateStars, rateNote } = get();
+    if (!rateCafeId || !rateDrinkId || rateStars === 0) return;
+    await api.submitReview(rateCafeId, rateDrinkId, rateStars, rateNote || undefined);
+    set({ rateModalOpen: false, rateCafeId: null, rateDrinkId: null, rateStars: 0, rateNote: '' });
+    await get().fetchDiary();
+    await get().fetchCafes();
+  },
 }));

@@ -1,10 +1,10 @@
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { Cafe } from '../types';
+import { ApiCafe } from '../api/client';
 import { Colors } from '../theme/colors';
 import { useAppStore } from '../store/useAppStore';
 
 interface CafeCardProps {
-  cafe: Cafe;
+  cafe: ApiCafe;
   onPress: () => void;
   showSaveButton?: boolean;
 }
@@ -59,9 +59,7 @@ export const CafeCard: React.FC<CafeCardProps> = ({
           )}
         </View>
 
-        <Text style={styles.neighborhood}>
-          {cafe.neighborhood} · {cafe.distance}
-        </Text>
+        <Text style={styles.neighborhood}>{cafe.neighborhood}</Text>
 
         {cafe.tags && cafe.tags.length > 0 && (
           <Text style={styles.tags} numberOfLines={1}>
@@ -70,8 +68,10 @@ export const CafeCard: React.FC<CafeCardProps> = ({
         )}
 
         <View style={styles.footerRow}>
-          <Text style={styles.price}>{cafe.price}</Text>
-          <Text style={styles.rating}>★ {cafe.rating.toFixed(1)}</Text>
+          <Text style={styles.price}>
+            {cafe.lowestCreditPrice !== null ? `From ${cafe.lowestCreditPrice} cr` : cafe.price}
+          </Text>
+          <Text style={styles.rating}>{cafe.rating !== null ? `★ ${cafe.rating.toFixed(1)}` : 'New'}</Text>
         </View>
       </View>
     </TouchableOpacity>

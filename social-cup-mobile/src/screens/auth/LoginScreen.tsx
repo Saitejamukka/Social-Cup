@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -17,14 +19,25 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { setAccount } = useAppStore();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const login = useAppStore((s) => s.login);
 
-  const handleLogin = () => {
-    setAccount('visitor');
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'MainTabs' }],
-    });
+  const handleLogin = async () => {
+    if (!email.trim() || !password) {
+      setError('Enter your email and password.');
+      return;
+    }
+    setError(null);
+    setSubmitting(true);
+    try {
+      await login(email.trim(), password);
+      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -65,14 +78,19 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
               onChangeText={setPassword}
               secureTextEntry
             />
-            <TouchableOpacity style={styles.forgotBtn}>
+            <TouchableOpacity
+              style={styles.forgotBtn}
+              onPress={() => Alert.alert('Not available yet', 'Password reset email delivery is not configured in this build.')}
+            >
               <Text style={styles.forgotText}>Forgot password?</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <TouchableOpacity style={styles.submitBtn} onPress={handleLogin}>
-          <Text style={styles.submitBtnText}>Log in</Text>
+        {error && <Text style={styles.errorText}>{error}</Text>}
+
+        <TouchableOpacity style={styles.submitBtn} onPress={handleLogin} disabled={submitting}>
+          {submitting ? <ActivityIndicator color={Colors.ink} /> : <Text style={styles.submitBtnText}>Log in</Text>}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -134,6 +152,10 @@ const styles = StyleSheet.create({
   forgotText: {
     fontSize: 12,
     color: Colors.goldDark,
+  },
+  errorText: {
+    fontSize: 12,
+    color: Colors.danger,
   },
   submitBtn: {
     backgroundColor: Colors.gold,

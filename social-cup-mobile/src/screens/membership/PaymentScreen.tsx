@@ -20,15 +20,22 @@ export const PaymentScreen: React.FC<Props> = ({ navigation }) => {
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cvc, setCvc] = useState('');
-  const { setAccount, setCredits } = useAppStore();
+  const [error, setError] = useState<string | null>(null);
+  const subscribe = useAppStore((s) => s.subscribe);
 
-  const handlePay = () => {
+  // Stripe's native payment sheet (Apple Pay / Google Pay / card) is not wired up in
+  // this environment — see project notes. This calls the same backend endpoint a
+  // verified Stripe webhook would call once a real subscription payment succeeds.
+  const handlePay = async () => {
     setStage('processing');
-    setTimeout(() => {
-      setAccount('member');
-      setCredits(30);
+    setError(null);
+    try {
+      await subscribe();
       setStage('success');
-    }, 1200);
+    } catch (err: any) {
+      setError(err.message || 'Payment could not be confirmed');
+      setStage('form');
+    }
   };
 
   const handleFinish = () => {
@@ -101,6 +108,8 @@ export const PaymentScreen: React.FC<Props> = ({ navigation }) => {
                 />
               </View>
             </View>
+
+            {error && <Text style={styles.errorText}>{error}</Text>}
 
             <TouchableOpacity style={styles.payBtn} onPress={handlePay}>
               <Text style={styles.payBtnText}>Pay $24.99</Text>
@@ -233,6 +242,11 @@ const styles = StyleSheet.create({
     color: Colors.ink,
     fontSize: 15,
     fontWeight: '600',
+  },
+  errorText: {
+    fontSize: 12,
+    color: Colors.danger,
+    textAlign: 'center',
   },
   centerBox: {
     flex: 1,

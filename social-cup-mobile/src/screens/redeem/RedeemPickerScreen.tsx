@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,24 +7,38 @@ import {
   SafeAreaView,
   ScrollView,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { useAppStore } from '../../store/useAppStore';
-import { CAFES } from '../../data/mockData';
+import { api, ApiCafe } from '../../api/client';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RedeemPicker'>;
 
 export const RedeemPickerScreen: React.FC<Props> = ({ route, navigation }) => {
   const { cafeId } = route.params;
-  const cafe = CAFES.find((c) => c.id === cafeId) || CAFES[0];
-  const { credits, setSelectedDrinkId } = useAppStore();
+  const { user, getCafe } = useAppStore();
+  const [cafe, setCafe] = useState<ApiCafe | undefined>(getCafe(cafeId));
+
+  useEffect(() => {
+    if (!cafe) api.getCafe(cafeId).then(setCafe);
+  }, [cafeId]);
+
+  const credits = user?.credits ?? 0;
 
   const handlePickDrink = (drinkId: string) => {
-    setSelectedDrinkId(drinkId);
-    navigation.navigate('RedeemConfirm', { cafeId: cafe.id, drinkId });
+    navigation.navigate('RedeemConfirm', { cafeId, drinkId });
   };
+
+  if (!cafe) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <ActivityIndicator style={{ marginTop: 60 }} color={Colors.gold} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -42,7 +57,7 @@ export const RedeemPickerScreen: React.FC<Props> = ({ route, navigation }) => {
 
         <ScrollView contentContainerStyle={styles.list}>
           {cafe.drinks.map((drink) => {
-            const canAfford = credits >= drink.credits;
+            const canAfford = credits >= drink.creditsCost;
             return (
               <TouchableOpacity
                 key={drink.id}
@@ -64,11 +79,11 @@ export const RedeemPickerScreen: React.FC<Props> = ({ route, navigation }) => {
 
                 <View style={styles.drinkDetails}>
                   <Text style={styles.drinkName}>{drink.name}</Text>
-                  <Text style={styles.drinkType}>{drink.type}</Text>
+                  <Text style={styles.drinkType}>{drink.category}</Text>
                 </View>
 
                 <View style={styles.costCol}>
-                  <Text style={styles.creditCost}>{drink.credits} cr</Text>
+                  <Text style={styles.creditCost}>{drink.creditsCost} cr</Text>
                   {!canAfford && (
                     <Text style={styles.notEnough}>Not enough</Text>
                   )}

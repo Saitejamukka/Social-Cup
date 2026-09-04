@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   ScrollView,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -14,7 +15,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, TabParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { useAppStore } from '../../store/useAppStore';
-import { CAFES } from '../../data/mockData';
 import { CafeCard } from '../../components/CafeCard';
 
 type Props = CompositeScreenProps<
@@ -24,16 +24,20 @@ type Props = CompositeScreenProps<
 
 export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
   const {
-    userName,
+    user,
     offlineSim,
     setOfflineSim,
     locationAllowed,
-    homeNeighborhood,
-    setSelectedCafeId,
+    cafes,
+    cafesLoading,
+    fetchCafes,
   } = useAppStore();
 
+  useEffect(() => {
+    fetchCafes();
+  }, [fetchCafes]);
+
   const handleSelectCafe = (cafeId: string) => {
-    setSelectedCafeId(cafeId);
     navigation.navigate('CafeDetail', { cafeId });
   };
 
@@ -49,7 +53,10 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
           <TouchableOpacity
             style={styles.retryBtn}
-            onPress={() => setOfflineSim(false)}
+            onPress={() => {
+              setOfflineSim(false);
+              fetchCafes();
+            }}
           >
             <Text style={styles.retryBtnText}>Retry</Text>
           </TouchableOpacity>
@@ -58,21 +65,10 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
     );
   }
 
-  // Signature drinks list flattened with real images
-  const signatureDrinks: { name: string; cafeName: string; credits: number; cafeId: string; image?: string }[] = [];
-  CAFES.forEach((c) => {
-    c.drinks
-      .filter((d) => d.signature)
-      .forEach((d) => {
-        signatureDrinks.push({
-          name: d.name,
-          cafeName: c.name,
-          credits: d.credits,
-          cafeId: c.id,
-          image: d.image,
-        });
-      });
-  });
+  const featuredCafes = cafes.filter((c) => c.isFeatured).slice(0, 3);
+  const signatureDrinks = cafes.flatMap((c) =>
+    c.drinks.filter((d) => d.isSignature).map((d) => ({ ...d, cafeName: c.name, cafeId: c.id }))
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -81,7 +77,7 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.greeting}>Good afternoon</Text>
-            <Text style={styles.userName}>{userName}</Text>
+            <Text style={styles.userName}>{user?.name ?? ''}</Text>
           </View>
           <TouchableOpacity
             style={styles.profileAvatar}
@@ -105,84 +101,89 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
         {locationAllowed === false && (
           <View style={styles.locationNotice}>
             <Text style={styles.locationNoticeText}>
-              Location off — showing cafes near {homeNeighborhood} instead.
+              Location off — showing cafes near {user?.neighborhood ?? 'your area'} instead.
             </Text>
           </View>
         )}
 
-        {/* Featured Cafes Horizontal Scroll */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Featured cafes</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
-            {CAFES.slice(0, 3).map((cafe) => (
-              <TouchableOpacity
-                key={cafe.id}
-                style={styles.featuredCard}
-                onPress={() => handleSelectCafe(cafe.id)}
-                activeOpacity={0.8}
-              >
-                {cafe.image ? (
-                  <Image source={{ uri: cafe.image }} style={styles.featuredImage} resizeMode="cover" />
-                ) : (
-                  <View style={styles.featuredImage}>
-                    <Text style={styles.featuredImageText}>☕ {cafe.name}</Text>
-                  </View>
-                )}
-                <Text style={styles.featuredName}>{cafe.name}</Text>
-                <Text style={styles.featuredSub}>
-                  {cafe.neighborhood} · {cafe.distance}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+        {cafesLoading && cafes.length === 0 ? (
+          <ActivityIndicator style={{ marginTop: 40 }} color={Colors.gold} />
+        ) : (
+          <>
+            {featuredCafes.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Featured cafes</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+                  {featuredCafes.map((cafe) => (
+                    <TouchableOpacity
+                      key={cafe.id}
+                      style={styles.featuredCard}
+                      onPress={() => handleSelectCafe(cafe.id)}
+                      activeOpacity={0.8}
+                    >
+                      {cafe.image ? (
+                        <Image source={{ uri: cafe.image }} style={styles.featuredImage} resizeMode="cover" />
+                      ) : (
+                        <View style={styles.featuredImage}>
+                          <Text style={styles.featuredImageText}>☕ {cafe.name}</Text>
+                        </View>
+                      )}
+                      <Text style={styles.featuredName}>{cafe.name}</Text>
+                      <Text style={styles.featuredSub}>{cafe.neighborhood}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
-        {/* Signature Drinks Horizontal Scroll */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Signature drinks</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
-            {signatureDrinks.map((drink, idx) => (
-              <TouchableOpacity
-                key={idx}
-                style={styles.signatureCard}
-                onPress={() => handleSelectCafe(drink.cafeId)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.signatureImageWrapper}>
-                  {drink.image ? (
-                    <Image source={{ uri: drink.image }} style={styles.signatureImage} resizeMode="cover" />
-                  ) : (
-                    <View style={styles.signatureImage} />
-                  )}
-                  <View style={styles.signatureBadgeContainer}>
-                    <Text style={styles.signatureBadge}>Signature</Text>
-                  </View>
-                </View>
-                <Text style={styles.signatureName} numberOfLines={1}>
-                  {drink.name}
-                </Text>
-                <Text style={styles.signatureSub}>
-                  {drink.cafeName} · {drink.credits} cr
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+            {signatureDrinks.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Signature drinks</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+                  {signatureDrinks.map((drink) => (
+                    <TouchableOpacity
+                      key={drink.id}
+                      style={styles.signatureCard}
+                      onPress={() => handleSelectCafe(drink.cafeId)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.signatureImageWrapper}>
+                        {drink.image ? (
+                          <Image source={{ uri: drink.image }} style={styles.signatureImage} resizeMode="cover" />
+                        ) : (
+                          <View style={styles.signatureImage} />
+                        )}
+                        <View style={styles.signatureBadgeContainer}>
+                          <Text style={styles.signatureBadge}>Signature</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.signatureName} numberOfLines={1}>
+                        {drink.name}
+                      </Text>
+                      <Text style={styles.signatureSub}>
+                        {drink.cafeName} · {drink.creditsCost} cr
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
-        {/* New on Social Cup */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>New on Social Cup</Text>
-          <View style={styles.cafeList}>
-            {CAFES.map((cafe) => (
-              <CafeCard
-                key={cafe.id}
-                cafe={cafe}
-                onPress={() => handleSelectCafe(cafe.id)}
-                showSaveButton
-              />
-            ))}
-          </View>
-        </View>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>New on Social Cup</Text>
+              <View style={styles.cafeList}>
+                {cafes.map((cafe) => (
+                  <CafeCard
+                    key={cafe.id}
+                    cafe={cafe}
+                    onPress={() => handleSelectCafe(cafe.id)}
+                    showSaveButton
+                  />
+                ))}
+              </View>
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

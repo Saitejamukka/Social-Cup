@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -14,7 +15,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, TabParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { useAppStore } from '../../store/useAppStore';
-import { CAFES, NEIGHBORHOODS } from '../../data/mockData';
+import { NEIGHBORHOODS } from '../../data/mockData';
 import { CafeCard } from '../../components/CafeCard';
 
 type Props = CompositeScreenProps<
@@ -26,26 +27,24 @@ export const ExploreScreen: React.FC<Props> = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedNeighborhood, setSelectedNeighborhood] = useState('All');
   const [activeTab, setActiveTab] = useState<'all' | 'saved'>('all');
-  const { savedCafeIds, setSelectedCafeId } = useAppStore();
+  const { savedCafeIds, cafes, cafesLoading, fetchCafes } = useAppStore();
 
   const neighborhoodList = ['All', ...NEIGHBORHOODS];
 
-  // Filter cafes
-  let filtered = CAFES.filter((c) => {
-    const matchesNeighborhood =
-      selectedNeighborhood === 'All' || c.neighborhood === selectedNeighborhood;
-    const matchesSearch = c.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    return matchesNeighborhood && matchesSearch;
-  });
+  // Server-backed filtering: the PRD's neighbourhood filter + name search run on the API.
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      fetchCafes({
+        neighborhood: selectedNeighborhood === 'All' ? undefined : selectedNeighborhood,
+        search: searchQuery || undefined,
+      });
+    }, 250);
+    return () => clearTimeout(timeout);
+  }, [selectedNeighborhood, searchQuery, fetchCafes]);
 
-  if (activeTab === 'saved') {
-    filtered = filtered.filter((c) => savedCafeIds.includes(c.id));
-  }
+  const filtered = activeTab === 'saved' ? cafes.filter((c) => savedCafeIds.includes(c.id)) : cafes;
 
   const handleSelectCafe = (cafeId: string) => {
-    setSelectedCafeId(cafeId);
     navigation.navigate('CafeDetail', { cafeId });
   };
 
@@ -129,7 +128,9 @@ export const ExploreScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* Results List */}
         <ScrollView contentContainerStyle={styles.listContent}>
-          {filtered.length === 0 ? (
+          {cafesLoading ? (
+            <ActivityIndicator style={{ marginTop: 40 }} color={Colors.gold} />
+          ) : filtered.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyIcon}>☕</Text>
               <Text style={styles.emptyTitle}>No cafes match</Text>

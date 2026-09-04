@@ -7,16 +7,43 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { useAppStore } from '../../store/useAppStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Signup'>;
 
+const notAvailable = () =>
+  Alert.alert('Not available yet', 'Google and Apple sign-in are not set up in this build — please use email and password.');
+
 export const SignupScreen: React.FC<Props> = ({ navigation }) => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const register = useAppStore((s) => s.register);
+
+  const handleSubmit = async () => {
+    if (!name.trim() || !email.trim() || password.length < 8) {
+      setError('Enter your name, email, and a password of at least 8 characters.');
+      return;
+    }
+    setError(null);
+    setSubmitting(true);
+    try {
+      await register(email.trim(), password, name.trim());
+      navigation.navigate('VerifyEmail');
+    } catch (err: any) {
+      setError(err.message || 'Could not create your account');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -37,18 +64,12 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* Social Buttons */}
         <View style={styles.socialGroup}>
-          <TouchableOpacity
-            style={styles.googleBtn}
-            onPress={() => navigation.navigate('VerifyEmail')}
-          >
+          <TouchableOpacity style={styles.googleBtn} onPress={notAvailable}>
             <View style={styles.socialDot} />
             <Text style={styles.googleBtnText}>Continue with Google</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.appleBtn}
-            onPress={() => navigation.navigate('VerifyEmail')}
-          >
+          <TouchableOpacity style={styles.appleBtn} onPress={notAvailable}>
             <View style={[styles.socialDot, { backgroundColor: Colors.white }]} />
             <Text style={styles.appleBtnText}>Continue with Apple</Text>
           </TouchableOpacity>
@@ -63,6 +84,17 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* Form Inputs */}
         <View style={styles.form}>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.inputLabel}>Display name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Jordan Avery"
+              placeholderTextColor={Colors.pale}
+              value={name}
+              onChangeText={setName}
+            />
+          </View>
+
           <View style={styles.inputWrapper}>
             <Text style={styles.inputLabel}>Email</Text>
             <TextInput
@@ -89,11 +121,10 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.submitBtn}
-          onPress={() => navigation.navigate('VerifyEmail')}
-        >
-          <Text style={styles.submitBtnText}>Create account</Text>
+        {error && <Text style={styles.errorText}>{error}</Text>}
+
+        <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={submitting}>
+          {submitting ? <ActivityIndicator color={Colors.ink} /> : <Text style={styles.submitBtnText}>Create account</Text>}
         </TouchableOpacity>
 
         <View style={styles.footerRow}>
@@ -211,6 +242,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     backgroundColor: Colors.white,
     color: Colors.ink,
+  },
+  errorText: {
+    fontSize: 12,
+    color: Colors.danger,
   },
   submitBtn: {
     backgroundColor: Colors.gold,

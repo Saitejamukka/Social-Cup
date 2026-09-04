@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -18,26 +18,29 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Onboarding'>;
 
 export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
   const [step, setStep] = useState(0);
+  const [finishing, setFinishing] = useState(false);
   const {
-    userName,
-    setUserName,
-    preferences,
-    togglePreference,
-    homeNeighborhood,
-    setHomeNeighborhood,
+    draftPreferences,
+    toggleDraftPreference,
+    draftNeighborhood,
+    setDraftNeighborhood,
     setLocationAllowed,
     locationAllowed,
+    updateProfile,
   } = useAppStore();
 
-  const handleFinish = () => {
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'MainTabs' }],
-    });
+  const handleFinish = async () => {
+    setFinishing(true);
+    try {
+      await updateProfile({ neighborhood: draftNeighborhood, preferences: draftPreferences });
+    } finally {
+      setFinishing(false);
+      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+    }
   };
 
   const handleNext = () => {
-    if (step < 3) {
+    if (step < 2) {
       setStep(step + 1);
     } else {
       handleFinish();
@@ -61,7 +64,7 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.backText}>←</Text>
           </TouchableOpacity>
           <View style={styles.dotsContainer}>
-            {[0, 1, 2, 3].map((i) => (
+            {[0, 1, 2].map((i) => (
               <View
                 key={i}
                 style={[
@@ -74,32 +77,8 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <ScrollView contentContainerStyle={styles.content}>
-          {/* STEP 0: Display Name & Photo */}
+          {/* STEP 0: Coffee Preferences */}
           {step === 0 && (
-            <View style={styles.stepContainer}>
-              <View style={styles.header}>
-                <Text style={styles.title}>What should we call you?</Text>
-                <Text style={styles.subtitle}>
-                  Your display name is shown on your diary and to connections.
-                </Text>
-              </View>
-
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>add photo</Text>
-              </View>
-
-              <TextInput
-                style={styles.nameInput}
-                value={userName}
-                onChangeText={setUserName}
-                placeholder="Display name"
-                placeholderTextColor={Colors.pale}
-              />
-            </View>
-          )}
-
-          {/* STEP 1: Coffee Preferences */}
-          {step === 1 && (
             <View style={styles.stepContainer}>
               <View style={styles.header}>
                 <Text style={styles.title}>Coffee preferences</Text>
@@ -110,24 +89,14 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 
               <View style={styles.chipsContainer}>
                 {PREF_OPTIONS.map((pref) => {
-                  const isSelected = preferences.includes(pref);
+                  const isSelected = draftPreferences.includes(pref);
                   return (
                     <TouchableOpacity
                       key={pref}
-                      style={[
-                        styles.chip,
-                        isSelected && styles.chipActive,
-                      ]}
-                      onPress={() => togglePreference(pref)}
+                      style={[styles.chip, isSelected && styles.chipActive]}
+                      onPress={() => toggleDraftPreference(pref)}
                     >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          isSelected && styles.chipTextActive,
-                        ]}
-                      >
-                        {pref}
-                      </Text>
+                      <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>{pref}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -135,8 +104,8 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           )}
 
-          {/* STEP 2: Home Neighbourhood */}
-          {step === 2 && (
+          {/* STEP 1: Home Neighbourhood */}
+          {step === 1 && (
             <View style={styles.stepContainer}>
               <View style={styles.header}>
                 <Text style={styles.title}>Your home neighbourhood</Text>
@@ -147,15 +116,12 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 
               <View style={styles.listContainer}>
                 {NEIGHBORHOODS.map((n) => {
-                  const isSelected = homeNeighborhood === n;
+                  const isSelected = draftNeighborhood === n;
                   return (
                     <TouchableOpacity
                       key={n}
-                      style={[
-                        styles.neighborhoodItem,
-                        isSelected && styles.neighborhoodItemActive,
-                      ]}
-                      onPress={() => setHomeNeighborhood(n)}
+                      style={[styles.neighborhoodItem, isSelected && styles.neighborhoodItemActive]}
+                      onPress={() => setDraftNeighborhood(n)}
                     >
                       <Text style={styles.neighborhoodText}>{n}</Text>
                       {isSelected && <Text style={styles.checkText}>✓</Text>}
@@ -166,8 +132,8 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           )}
 
-          {/* STEP 3: Location */}
-          {step === 3 && (
+          {/* STEP 2: Location */}
+          {step === 2 && (
             <View style={[styles.stepContainer, styles.centerStep]}>
               <View style={styles.locationIcon}>
                 <Text style={styles.locationGlyph}>◎</Text>
@@ -180,7 +146,7 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
               {locationAllowed === false && (
                 <View style={styles.locationNote}>
                   <Text style={styles.locationNoteText}>
-                    We'll sort cafes by your neighbourhood ({homeNeighborhood}) instead.
+                    We'll sort cafes by your neighbourhood ({draftNeighborhood}) instead.
                   </Text>
                 </View>
               )}
@@ -192,16 +158,12 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
                     setLocationAllowed(true);
                     handleFinish();
                   }}
+                  disabled={finishing}
                 >
-                  <Text style={styles.primaryBtnText}>Allow location</Text>
+                  {finishing ? <ActivityIndicator color={Colors.ink} /> : <Text style={styles.primaryBtnText}>Allow location</Text>}
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={styles.secondaryBtn}
-                  onPress={() => {
-                    setLocationAllowed(false);
-                  }}
-                >
+                <TouchableOpacity style={styles.secondaryBtn} onPress={() => setLocationAllowed(false)}>
                   <Text style={styles.secondaryBtnText}>Not now</Text>
                 </TouchableOpacity>
               </View>
@@ -209,11 +171,11 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
           )}
         </ScrollView>
 
-        {/* Bottom Continue Button for Steps 0-2 */}
-        {(step < 3 || locationAllowed === false) && (
+        {/* Bottom Continue Button for Steps 0-1, or after declining location */}
+        {(step < 2 || locationAllowed === false) && (
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.primaryBtn} onPress={handleNext}>
-              <Text style={styles.primaryBtnText}>Continue</Text>
+            <TouchableOpacity style={styles.primaryBtn} onPress={handleNext} disabled={finishing}>
+              {finishing ? <ActivityIndicator color={Colors.ink} /> : <Text style={styles.primaryBtnText}>Continue</Text>}
             </TouchableOpacity>
           </View>
         )}
@@ -278,31 +240,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: Colors.mute,
-  },
-  avatarPlaceholder: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    alignSelf: 'center',
-    backgroundColor: Colors.panel,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 12,
-  },
-  avatarText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Colors.mute,
-  },
-  nameInput: {
-    borderWidth: 1,
-    borderColor: Colors.line,
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 15,
-    backgroundColor: Colors.white,
-    color: Colors.ink,
-    textAlign: 'center',
   },
   chipsContainer: {
     flexDirection: 'row',

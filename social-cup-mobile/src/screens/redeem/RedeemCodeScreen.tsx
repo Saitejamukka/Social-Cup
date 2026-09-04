@@ -1,56 +1,83 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { useAppStore } from '../../store/useAppStore';
-import { CAFES } from '../../data/mockData';
+import { api } from '../../api/client';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RedeemCode'>;
 
 export const RedeemCodeScreen: React.FC<Props> = ({ route, navigation }) => {
   const { cafeId, drinkId } = route.params;
-  const cafe = CAFES.find((c) => c.id === cafeId) || CAFES[0];
-  const drink = cafe.drinks.find((d) => d.id === drinkId) || cafe.drinks[0];
-
-  const {
-    redeemCode,
-    backupCode,
-    timerSeconds,
-    tickTimer,
-    cancelRedemptionCode,
-  } = useAppStore();
+  const { activeRedemption, cancelActiveRedemption, refreshUser } = useAppStore();
+  const [secondsLeft, setSecondsLeft] = useState(300);
+  const navigatedAway = useRef(false);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      tickTimer();
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [tickTimer]);
+    if (!activeRedemption) {
+      navigation.goBack();
+      return;
+    }
 
-  const minutes = Math.floor(timerSeconds / 60);
-  const seconds = timerSeconds % 60;
+    const tick = () => {
+      const remaining = Math.max(0, Math.round((new Date(activeRedemption.expiresAt).getTime() - Date.now()) / 1000));
+      setSecondsLeft(remaining);
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+
+    // Poll the server so this screen reacts the instant a barista scans the code.
+    const poll = setInterval(async () => {
+      if (navigatedAway.current) return;
+      try {
+        const redemption = await api.getRedemption(activeRedemption.id);
+        if (redemption.status === 'REDEEMED') {
+          navigatedAway.current = true;
+          await refreshUser();
+          navigation.replace('RedeemSuccess', { cafeId, drinkId });
+        } else if (redemption.status === 'EXPIRED') {
+          navigatedAway.current = true;
+          navigation.replace('RedeemFailed', { cafeId, reason: 'expired' });
+        } else if (redemption.status === 'VOIDED') {
+          navigatedAway.current = true;
+          navigation.goBack();
+        }
+      } catch {
+        // Transient network error — the next poll will retry.
+      }
+    }, 2000);
+
+    return () => {
+      clearInterval(timer);
+      clearInterval(poll);
+    };
+  }, [activeRedemption?.id]);
+
+  const minutes = Math.floor(secondsLeft / 60);
+  const seconds = secondsLeft % 60;
   const timerLabel = `${minutes}:${String(seconds).padStart(2, '0')} remaining`;
 
-  const handleCancel = () => {
-    cancelRedemptionCode(drink.credits);
+  const handleCancel = async () => {
+    navigatedAway.current = true;
+    await cancelActiveRedemption();
     navigation.goBack();
   };
 
-  const handleSimulateSuccess = () => {
-    navigation.replace('RedeemSuccess', { cafeId, drinkId });
-  };
-
-  const handleSimulateFail = () => {
-    cancelRedemptionCode(drink.credits);
-    navigation.replace('RedeemFailed', { cafeId });
-  };
+  if (!activeRedemption) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <ActivityIndicator style={{ marginTop: 60 }} color={Colors.gold} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -64,37 +91,21 @@ export const RedeemCodeScreen: React.FC<Props> = ({ route, navigation }) => {
 
           {/* Large Code Display */}
           <View style={styles.codeCard}>
-            <Text style={styles.codeText}>{redeemCode}</Text>
+            <Text style={styles.codeText}>{activeRedemption.code}</Text>
           </View>
 
           {/* Timer */}
-          <Text style={styles.timerText}>{timerLabel}</Text>
+          <Text style={styles.timerText}>{secondsLeft > 0 ? timerLabel : 'Expiring…'}</Text>
 
           {/* Backup Code */}
           <Text style={styles.backupText}>
             Can't scan? Use backup code:{' '}
-            <Text style={styles.backupHighlight}>{backupCode}</Text>
+            <Text style={styles.backupHighlight}>{activeRedemption.backupCode}</Text>
           </Text>
 
-          {/* Prototype Demo Controls */}
-          <View style={styles.demoBox}>
-            <Text style={styles.demoTitle}>Demo controls</Text>
-            <TouchableOpacity
-              style={styles.simulateSuccessBtn}
-              onPress={handleSimulateSuccess}
-            >
-              <Text style={styles.simulateSuccessText}>
-                Simulate: barista scans code
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.simulateFailBtn}
-              onPress={handleSimulateFail}
-            >
-              <Text style={styles.simulateFailText}>Simulate: scan failed</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.cancelLink} onPress={handleCancel}>
+            <Text style={styles.cancelLinkText}>Cancel this code</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -159,46 +170,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.ink,
   },
-  demoBox: {
-    width: '100%',
-    borderTopWidth: 1,
-    borderTopColor: Colors.line,
-    borderStyle: 'dashed',
-    paddingTop: 20,
+  cancelLink: {
     marginTop: 20,
-    gap: 10,
-    alignItems: 'center',
+    padding: 8,
   },
-  demoTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.pale,
-    textTransform: 'uppercase',
-  },
-  simulateSuccessBtn: {
-    backgroundColor: Colors.success,
-    width: '100%',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  simulateSuccessText: {
-    color: Colors.white,
+  cancelLinkText: {
     fontSize: 13,
     fontWeight: '600',
-  },
-  simulateFailBtn: {
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    width: '100%',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  simulateFailText: {
     color: Colors.mute,
-    fontSize: 13,
-    fontWeight: '600',
   },
 });

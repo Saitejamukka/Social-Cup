@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   View,
   Text,
@@ -5,7 +6,7 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
-  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -13,7 +14,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, TabParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { useAppStore } from '../../store/useAppStore';
-import { CAFES } from '../../data/mockData';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'DiaryTab'>,
@@ -21,11 +21,11 @@ type Props = CompositeScreenProps<
 >;
 
 export const DiaryScreen: React.FC<Props> = ({ navigation }) => {
-  const { diaryEntries, openRateModal } = useAppStore();
+  const { diary, diaryLoading, fetchDiary, openRateModal } = useAppStore();
 
-  const handleEditEntry = (cafeId: string, drinkId: string, stars: number, note?: string) => {
-    openRateModal(cafeId, drinkId, stars, note);
-  };
+  useEffect(() => {
+    fetchDiary();
+  }, [fetchDiary]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -33,11 +33,13 @@ export const DiaryScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.header}>
           <Text style={styles.title}>Your Drink Diary</Text>
           <Text style={styles.count}>
-            {diaryEntries.length} drink{diaryEntries.length === 1 ? '' : 's'} rated
+            {diary.length} drink{diary.length === 1 ? '' : 's'} rated
           </Text>
         </View>
 
-        {diaryEntries.length === 0 ? (
+        {diaryLoading && diary.length === 0 ? (
+          <ActivityIndicator style={{ marginTop: 40 }} color={Colors.gold} />
+        ) : diary.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyCircle}>
               <Text style={styles.emptyIcon}>☕</Text>
@@ -55,49 +57,27 @@ export const DiaryScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.list}>
-            {diaryEntries.map((entry) => {
-              const cafe = CAFES.find((c) => c.id === entry.cafeId);
-              const drink = cafe?.drinks.find((d) => d.id === entry.drinkId);
-              const starsText =
-                '★'.repeat(entry.stars) + '☆'.repeat(5 - entry.stars);
+            {diary.map((entry) => {
+              const starsText = '★'.repeat(entry.stars) + '☆'.repeat(5 - entry.stars);
 
               return (
                 <TouchableOpacity
                   key={entry.id}
                   style={styles.entryCard}
-                  onPress={() =>
-                    handleEditEntry(
-                      entry.cafeId,
-                      entry.drinkId,
-                      entry.stars,
-                      entry.note
-                    )
-                  }
+                  onPress={() => openRateModal(entry.cafeId, entry.drinkId, entry.stars, entry.note ?? undefined)}
                   activeOpacity={0.8}
                 >
-                  {drink?.image ? (
-                    <Image
-                      source={{ uri: drink.image }}
-                      style={styles.drinkThumb}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View style={styles.drinkThumb}>
-                      <Text style={styles.drinkThumbText}>☕</Text>
-                    </View>
-                  )}
+                  <View style={styles.drinkThumb}>
+                    <Text style={styles.drinkThumbText}>☕</Text>
+                  </View>
 
                   <View style={styles.entryContent}>
-                    <Text style={styles.drinkName}>
-                      {drink?.name || 'Coffee Drink'}
-                    </Text>
+                    <Text style={styles.drinkName}>{entry.drinkName}</Text>
                     <Text style={styles.meta}>
-                      {cafe?.name || 'Partner Cafe'} · {entry.date}
+                      {entry.cafeName} · {new Date(entry.date).toLocaleDateString()}
                     </Text>
                     <Text style={styles.stars}>{starsText}</Text>
-                    {entry.note ? (
-                      <Text style={styles.note}>"{entry.note}"</Text>
-                    ) : null}
+                    {entry.note ? <Text style={styles.note}>"{entry.note}"</Text> : null}
                   </View>
                 </TouchableOpacity>
               );

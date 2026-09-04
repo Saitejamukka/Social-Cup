@@ -10,17 +10,13 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
-import { useAppStore } from '../../store/useAppStore';
 import { FAIL_REASONS } from '../../data/mockData';
-import { FailReasonKey } from '../../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RedeemFailed'>;
 
 export const RedeemFailedScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { cafeId } = route.params;
-  const { failReasonKey, setFailReasonKey } = useAppStore();
-
-  const currentReason = FAIL_REASONS[failReasonKey];
+  const { cafeId, reason = 'expired' } = route.params;
+  const currentReason = FAIL_REASONS[reason];
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -31,32 +27,6 @@ export const RedeemFailedScreen: React.FC<Props> = ({ route, navigation }) => {
 
         <Text style={styles.title}>{currentReason.title}</Text>
         <Text style={styles.message}>{currentReason.message}</Text>
-
-        {/* Prototype error reason switcher */}
-        <View style={styles.reasonChips}>
-          {(Object.keys(FAIL_REASONS) as FailReasonKey[]).map((key) => {
-            const isSelected = failReasonKey === key;
-            return (
-              <TouchableOpacity
-                key={key}
-                style={[
-                  styles.reasonChip,
-                  isSelected && styles.reasonChipActive,
-                ]}
-                onPress={() => setFailReasonKey(key)}
-              >
-                <Text
-                  style={[
-                    styles.reasonChipText,
-                    isSelected && styles.reasonChipTextActive,
-                  ]}
-                >
-                  {FAIL_REASONS[key].label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
 
         <TouchableOpacity
           style={styles.retryBtn}
@@ -106,33 +76,6 @@ const styles = StyleSheet.create({
     color: Colors.mute,
     textAlign: 'center',
     maxWidth: 280,
-  },
-  reasonChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    justifyContent: 'center',
-    marginTop: 10,
-  },
-  reasonChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    backgroundColor: Colors.white,
-  },
-  reasonChipActive: {
-    backgroundColor: Colors.ink,
-    borderColor: Colors.ink,
-  },
-  reasonChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.ink,
-  },
-  reasonChipTextActive: {
-    color: Colors.white,
   },
   retryBtn: {
     backgroundColor: Colors.gold,

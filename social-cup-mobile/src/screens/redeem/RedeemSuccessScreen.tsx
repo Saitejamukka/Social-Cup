@@ -1,18 +1,23 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { useAppStore } from '../../store/useAppStore';
-import { CAFES } from '../../data/mockData';
+import { api, ApiCafe } from '../../api/client';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RedeemSuccess'>;
 
 export const RedeemSuccessScreen: React.FC<Props> = ({ route, navigation }) => {
   const { cafeId, drinkId } = route.params;
-  const cafe = CAFES.find((c) => c.id === cafeId) || CAFES[0];
-  const drink = cafe.drinks.find((d) => d.id === drinkId) || cafe.drinks[0];
-  const { credits, openRateModal } = useAppStore();
+  const { user, getCafe, openRateModal } = useAppStore();
+  const [cafe, setCafe] = useState<ApiCafe | undefined>(getCafe(cafeId));
+
+  useEffect(() => {
+    if (!cafe) api.getCafe(cafeId).then(setCafe);
+  }, [cafeId]);
+
+  const drink = cafe?.drinks.find((d) => d.id === drinkId);
 
   const handleRate = () => {
     openRateModal(cafeId, drinkId);
@@ -37,22 +42,26 @@ export const RedeemSuccessScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
 
         <Text style={styles.title}>Redeemed</Text>
-        <Text style={styles.subtitle}>
-          {drink.name} · {cafe.name}
-        </Text>
-
-        <View style={styles.creditsRow}>
-          <View style={styles.creditStat}>
-            <Text style={styles.creditVal}>-{drink.credits}</Text>
-            <Text style={styles.creditLabel}>credits used</Text>
-          </View>
-          <View style={styles.creditStat}>
-            <Text style={[styles.creditVal, { color: Colors.gold }]}>
-              {credits}
+        {!cafe || !drink ? (
+          <ActivityIndicator color={Colors.white} />
+        ) : (
+          <>
+            <Text style={styles.subtitle}>
+              {drink.name} · {cafe.name}
             </Text>
-            <Text style={styles.creditLabel}>remaining</Text>
-          </View>
-        </View>
+
+            <View style={styles.creditsRow}>
+              <View style={styles.creditStat}>
+                <Text style={styles.creditVal}>-{drink.creditsCost}</Text>
+                <Text style={styles.creditLabel}>credits used</Text>
+              </View>
+              <View style={styles.creditStat}>
+                <Text style={[styles.creditVal, { color: Colors.gold }]}>{user?.credits ?? 0}</Text>
+                <Text style={styles.creditLabel}>remaining</Text>
+              </View>
+            </View>
+          </>
+        )}
 
         <TouchableOpacity style={styles.primaryBtn} onPress={handleRate}>
           <Text style={styles.primaryBtnText}>Rate this drink</Text>

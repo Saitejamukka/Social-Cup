@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   View,
@@ -7,10 +7,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { Colors } from '../theme/colors';
 import { useAppStore } from '../store/useAppStore';
-import { CAFES } from '../data/mockData';
+import { api, ApiCafe } from '../api/client';
 
 export const RateModal: React.FC = () => {
   const {
@@ -23,12 +24,34 @@ export const RateModal: React.FC = () => {
     setRateNote,
     submitRating,
     closeRateModal,
+    getCafe,
   } = useAppStore();
+
+  const [cafe, setCafe] = useState<ApiCafe | undefined>();
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!rateModalOpen || !rateCafeId) return;
+    const cached = getCafe(rateCafeId);
+    if (cached) {
+      setCafe(cached);
+    } else {
+      api.getCafe(rateCafeId).then(setCafe).catch(() => setCafe(undefined));
+    }
+  }, [rateModalOpen, rateCafeId]);
 
   if (!rateModalOpen) return null;
 
-  const cafe = CAFES.find((c) => c.id === rateCafeId);
   const drink = cafe?.drinks.find((d) => d.id === rateDrinkId);
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      await submitRating();
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <Modal visible={rateModalOpen} transparent animationType="slide">
@@ -77,10 +100,10 @@ export const RateModal: React.FC = () => {
               styles.submitBtn,
               { backgroundColor: rateStars > 0 ? Colors.gold : Colors.panel },
             ]}
-            onPress={submitRating}
-            disabled={rateStars === 0}
+            onPress={handleSubmit}
+            disabled={rateStars === 0 || submitting}
           >
-            <Text style={styles.submitBtnText}>Submit rating</Text>
+            {submitting ? <ActivityIndicator color={Colors.ink} /> : <Text style={styles.submitBtnText}>Submit rating</Text>}
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.cancelBtn} onPress={closeRateModal}>

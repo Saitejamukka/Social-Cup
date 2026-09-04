@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,12 +8,15 @@ import {
   ScrollView,
   Image,
   Dimensions,
+  ActivityIndicator,
+  Alert,
+  Linking,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { useAppStore } from '../../store/useAppStore';
-import { CAFES } from '../../data/mockData';
+import { api, ApiCafe } from '../../api/client';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -20,19 +24,40 @@ type Props = NativeStackScreenProps<RootStackParamList, 'CafeDetail'>;
 
 export const CafeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { cafeId } = route.params;
-  const cafe = CAFES.find((c) => c.id === cafeId) || CAFES[0];
-  const { account, credits, openRateModal, setSelectedCafeId } = useAppStore();
+  const { user, openRateModal, getCafe } = useAppStore();
+  const [cafe, setCafe] = useState<ApiCafe | undefined>(getCafe(cafeId));
+  const [loading, setLoading] = useState(!cafe);
 
-  const isMember = account === 'member';
-  const hasCredits = credits > 0;
+  useEffect(() => {
+    if (!cafe) {
+      api.getCafe(cafeId).then(setCafe).finally(() => setLoading(false));
+    }
+  }, [cafeId]);
+
+  if (loading || !cafe) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ActivityIndicator style={{ marginTop: 60 }} color={Colors.gold} />
+      </SafeAreaView>
+    );
+  }
+
+  const isMember = user?.accountStatus === 'MEMBER';
+  const hasCredits = (user?.credits ?? 0) > 0;
 
   const handleRedeemPress = () => {
-    setSelectedCafeId(cafe.id);
     if (!isMember) {
       navigation.navigate('Membership');
     } else {
       navigation.navigate('RedeemPicker', { cafeId: cafe.id });
     }
+  };
+
+  const openDirections = () => {
+    const query = encodeURIComponent(cafe.address);
+    Linking.openURL(`https://maps.google.com/?q=${query}`).catch(() =>
+      Alert.alert('Could not open maps', 'No map application is available on this device.')
+    );
   };
 
   const galleryImages = cafe.gallery && cafe.gallery.length > 0 ? cafe.gallery : [cafe.image || ''];
@@ -87,8 +112,8 @@ export const CafeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.metaText}>Hours: {cafe.hours}</Text>
 
           <View style={styles.ratingRow}>
-            <Text style={styles.ratingText}>★ {cafe.rating.toFixed(1)}</Text>
-            <TouchableOpacity>
+            <Text style={styles.ratingText}>{cafe.rating !== null ? `★ ${cafe.rating.toFixed(1)}` : 'New on Social Cup'}</Text>
+            <TouchableOpacity onPress={openDirections}>
               <Text style={styles.directionsLink}>Get directions →</Text>
             </TouchableOpacity>
           </View>
@@ -123,23 +148,23 @@ export const CafeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               <View style={styles.drinkInfo}>
                 <View style={styles.drinkTitleRow}>
                   <Text style={styles.drinkName}>{drink.name}</Text>
-                  {drink.signature && (
+                  {drink.isSignature && (
                     <View style={styles.signatureBadge}>
                       <Text style={styles.signatureText}>Signature</Text>
                     </View>
                   )}
                 </View>
 
-                <Text style={styles.drinkDesc}>{drink.desc}</Text>
+                <Text style={styles.drinkDesc}>{drink.description}</Text>
 
                 <View style={styles.drinkFooter}>
                   <Text style={styles.drinkPrice}>
-                    ${drink.retail.toFixed(2)} · {drink.credits} cr
+                    ${drink.retailPrice.toFixed(2)} · {drink.creditsCost} cr
                   </Text>
 
                   <View style={styles.ratingActionGroup}>
                     <Text style={styles.drinkRating}>
-                      ★ {drink.rating.toFixed(1)}
+                      {drink.rating !== null ? `★ ${drink.rating.toFixed(1)}` : 'New'}
                     </Text>
                     <TouchableOpacity
                       style={styles.rateBtn}

@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   ScrollView,
   Switch,
+  Alert,
 } from 'react-native';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -14,7 +15,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, TabParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { useAppStore } from '../../store/useAppStore';
-import { AccountType } from '../../types';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'ProfileTab'>,
@@ -23,10 +23,10 @@ type Props = CompositeScreenProps<
 
 export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const {
-    userName,
-    account,
-    credits,
-    setAccount,
+    user,
+    logout,
+    deleteAccount,
+    cancelMembership,
     locationAllowed,
     setLocationAllowed,
     offlineSim,
@@ -37,33 +37,52 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     toggleNotifRenewals,
   } = useAppStore();
 
-  const isMember = account === 'member';
+  const isMember = user?.accountStatus === 'MEMBER';
 
   const statusLabel =
-    account === 'member'
+    user?.accountStatus === 'MEMBER'
       ? 'Member'
-      : account === 'expired'
-      ? 'Expired'
-      : account === 'canceled'
+      : user?.accountStatus === 'EXPIRED'
+      ? 'Payment failed'
+      : user?.accountStatus === 'CANCELED'
       ? 'Canceled'
       : 'Visitor';
 
   const statusColor = isMember ? Colors.success : Colors.pale;
 
-  const handleLogout = () => {
-    setAccount('visitor');
-    (navigation as any).reset({
-      index: 0,
-      routes: [{ name: 'Welcome' }],
-    });
+  const handleLogout = async () => {
+    await logout();
+    (navigation as any).reset({ index: 0, routes: [{ name: 'Welcome' }] });
   };
 
-  const accountChips: AccountType[] = [
-    'visitor',
-    'member',
-    'expired',
-    'canceled',
-  ];
+  const handleCancelMembership = () => {
+    Alert.alert(
+      'Cancel membership?',
+      'Your card is managed by Stripe in production; this build cancels immediately rather than at the end of the paid period.',
+      [
+        { text: 'Keep membership', style: 'cancel' },
+        { text: 'Cancel membership', style: 'destructive', onPress: () => cancelMembership() },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete your account?',
+      'This cancels any active membership and cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete account',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteAccount();
+            (navigation as any).reset({ index: 0, routes: [{ name: 'Welcome' }] });
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -74,10 +93,8 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.avatarGlyph}>👤</Text>
           </View>
           <View>
-            <Text style={styles.name}>{userName}</Text>
-            <Text style={[styles.status, { color: statusColor }]}>
-              {statusLabel}
-            </Text>
+            <Text style={styles.name}>{user?.name ?? ''}</Text>
+            <Text style={[styles.status, { color: statusColor }]}>{statusLabel}</Text>
           </View>
         </View>
 
@@ -85,22 +102,27 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
         {isMember ? (
           <View style={styles.creditCard}>
             <View style={styles.creditCardHeader}>
-              <Text style={styles.creditNumber}>{credits}</Text>
+              <Text style={styles.creditNumber}>{user?.credits ?? 0}</Text>
               <Text style={styles.creditTotal}>/ 30 credits</Text>
             </View>
             <View style={styles.progressBarBg}>
               <View
                 style={[
                   styles.progressBarFill,
-                  { width: `${Math.min(100, Math.round((credits / 30) * 100))}%` },
+                  { width: `${Math.min(100, Math.round(((user?.credits ?? 0) / 30) * 100))}%` },
                 ]}
               />
             </View>
-            <Text style={styles.renewNote}>Renews Oct 1 · no rollover</Text>
+            <Text style={styles.renewNote}>Resets monthly · no rollover</Text>
+            <TouchableOpacity onPress={handleCancelMembership}>
+              <Text style={styles.cancelMembershipText}>Cancel membership</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.visitorCard}>
-            <Text style={styles.visitorTitle}>You're browsing as a Visitor</Text>
+            <Text style={styles.visitorTitle}>
+              {user?.accountStatus === 'CANCELED' ? "You're no longer a member" : "You're browsing as a Visitor"}
+            </Text>
             <Text style={styles.visitorDesc}>
               Subscribe to start redeeming drinks with monthly credits.
             </Text>
@@ -152,40 +174,9 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Prototype Controls (Demo Only) */}
+        {/* Developer preview settings — exercise the PRD's required screen states */}
         <View style={styles.demoControlsBox}>
-          <Text style={styles.demoHeading}>
-            PROTOTYPE CONTROLS — DEMO ONLY
-          </Text>
-
-          <View style={styles.controlSection}>
-            <Text style={styles.controlTitle}>Account state</Text>
-            <View style={styles.chipsRow}>
-              {accountChips.map((type) => {
-                const active = account === type;
-                return (
-                  <TouchableOpacity
-                    key={type}
-                    style={[
-                      styles.demoChip,
-                      active && styles.demoChipActive,
-                    ]}
-                    onPress={() => setAccount(type)}
-                  >
-                    <Text
-                      style={[
-                        styles.demoChipText,
-                        active && styles.demoChipTextActive,
-                      ]}
-                    >
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
+          <Text style={styles.demoHeading}>DEVELOPER PREVIEW SETTINGS</Text>
           <View style={styles.toggleRow}>
             <View style={styles.simItem}>
               <Text style={styles.simLabel}>Location</Text>
@@ -193,29 +184,25 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
                 style={styles.simBtn}
                 onPress={() => setLocationAllowed(locationAllowed === false ? true : false)}
               >
-                <Text style={styles.simBtnText}>
-                  {locationAllowed === false ? 'Off' : 'On'}
-                </Text>
+                <Text style={styles.simBtnText}>{locationAllowed === false ? 'Off' : 'On'}</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.simItem}>
               <Text style={styles.simLabel}>Network</Text>
-              <TouchableOpacity
-                style={styles.simBtn}
-                onPress={() => setOfflineSim(!offlineSim)}
-              >
-                <Text style={styles.simBtnText}>
-                  {offlineSim ? 'Offline' : 'Online'}
-                </Text>
+              <TouchableOpacity style={styles.simBtn} onPress={() => setOfflineSim(!offlineSim)}>
+                <Text style={styles.simBtnText}>{offlineSim ? 'Offline' : 'Online'}</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
-        {/* Logout */}
+        {/* Logout / Delete */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Text style={styles.logoutText}>Log out</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteAccount}>
+          <Text style={styles.deleteText}>Delete account</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -295,6 +282,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.mute,
   },
+  cancelMembershipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.danger,
+    marginTop: 4,
+  },
   visitorCard: {
     backgroundColor: Colors.darkBg,
     borderRadius: 14,
@@ -362,38 +355,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     color: Colors.pale,
   },
-  controlSection: {
-    gap: 8,
-  },
-  controlTitle: {
-    fontSize: 12,
-    color: Colors.mute,
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  demoChip: {
-    paddingHorizontal: 11,
-    paddingVertical: 7,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    backgroundColor: Colors.white,
-  },
-  demoChipActive: {
-    backgroundColor: Colors.ink,
-    borderColor: Colors.ink,
-  },
-  demoChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.ink,
-  },
-  demoChipTextActive: {
-    color: Colors.white,
-  },
   toggleRow: {
     flexDirection: 'row',
     gap: 20,
@@ -428,5 +389,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: Colors.danger,
+  },
+  deleteBtn: {
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  deleteText: {
+    fontSize: 12,
+    color: Colors.pale,
   },
 });
