@@ -30,6 +30,12 @@
       "expo-web-browser",
       "expo-apple-authentication",
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Social Cup uses your location to sort nearby cafes by distance."
+        }
+      ],
+      [
         "@stripe/stripe-react-native",
         {
           "enableGooglePay": true

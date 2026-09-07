@@ -14,6 +14,8 @@ async function main() {
         name: cafe.name,
         neighborhood: cafe.neighborhood,
         address: cafe.address,
+        latitude: cafe.latitude,
+        longitude: cafe.longitude,
         hours: cafe.hours,
         isOpen: cafe.open,
         priceTier: cafe.price,
@@ -36,7 +38,9 @@ async function main() {
           })),
         },
       },
-      update: {},
+      // Backfills coordinates onto cafes seeded before latitude/longitude existed,
+      // without touching admin-editable fields (payoutRate, isFeatured, etc.).
+      update: { latitude: cafe.latitude, longitude: cafe.longitude },
     });
   }
 

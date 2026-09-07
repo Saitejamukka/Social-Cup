@@ -48,6 +48,7 @@ export const api = {
 
   // ---------------- Admin: dashboard ----------------
   adminMetrics: () => request<{ success: true; metrics: any }>('/api/admin/metrics'),
+  adminGetSettings: () => request<{ success: true; settings: any }>('/api/admin/settings'),
 
   // ---------------- Admin: cafes ----------------
   adminListCafes: () => request<{ success: true; cafes: any[] }>('/api/admin/cafes'),

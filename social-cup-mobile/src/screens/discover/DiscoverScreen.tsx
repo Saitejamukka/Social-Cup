@@ -28,14 +28,23 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
     offlineSim,
     setOfflineSim,
     locationAllowed,
+    userCoords,
+    distanceSortEnabled,
+    setDistanceSortEnabled,
     cafes,
     cafesLoading,
     fetchCafes,
   } = useAppStore();
 
+  const canSortByDistance = locationAllowed === true && userCoords !== null;
+
   useEffect(() => {
-    fetchCafes();
-  }, [fetchCafes]);
+    fetchCafes(
+      canSortByDistance && distanceSortEnabled
+        ? { lat: userCoords!.latitude, lng: userCoords!.longitude }
+        : undefined
+    );
+  }, [fetchCafes, canSortByDistance, distanceSortEnabled, userCoords?.latitude, userCoords?.longitude]);
 
   const handleSelectCafe = (cafeId: string) => {
     navigation.navigate('CafeDetail', { cafeId });
@@ -104,6 +113,20 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
               Location off — showing cafes near {user?.neighborhood ?? 'your area'} instead.
             </Text>
           </View>
+        )}
+
+        {/* Distance sort toggle — only meaningful once we actually have coordinates */}
+        {canSortByDistance && (
+          <TouchableOpacity
+            style={styles.distanceToggleRow}
+            onPress={() => setDistanceSortEnabled(!distanceSortEnabled)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.distanceToggleText}>Sort by distance</Text>
+            <View style={[styles.toggleTrack, distanceSortEnabled && styles.toggleTrackActive]}>
+              <View style={[styles.toggleThumb, distanceSortEnabled && styles.toggleThumbActive]} />
+            </View>
+          </TouchableOpacity>
         )}
 
         {cafesLoading && cafes.length === 0 ? (
@@ -251,6 +274,37 @@ const styles = StyleSheet.create({
   locationNoticeText: {
     fontSize: 12,
     color: Colors.goldDark,
+  },
+  distanceToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  distanceToggleText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.ink,
+  },
+  toggleTrack: {
+    width: 40,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: Colors.line,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleTrackActive: {
+    backgroundColor: Colors.gold,
+  },
+  toggleThumb: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.white,
+  },
+  toggleThumbActive: {
+    transform: [{ translateX: 18 }],
   },
   section: {
     gap: 10,

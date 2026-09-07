@@ -252,7 +252,7 @@ function ErrorText({ text }: { text: string }) {
 // Admin surface
 // ============================================================
 
-type AdminTab = 'dashboard' | 'cafes' | 'menu' | 'members' | 'redemptions' | 'payouts';
+type AdminTab = 'dashboard' | 'cafes' | 'menu' | 'members' | 'redemptions' | 'payouts' | 'settings';
 
 function AdminSurface() {
   const [tab, setTab] = useState<AdminTab>('dashboard');
@@ -267,6 +267,7 @@ function AdminSurface() {
           { key: 'members', label: '👥 Members' },
           { key: 'redemptions', label: '📋 Redemption Log' },
           { key: 'payouts', label: '💳 Payouts' },
+          { key: 'settings', label: '⚙️ Settings' },
         ] as { key: AdminTab; label: string }[]).map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{ textAlign: 'left', padding: '11px 14px', borderRadius: '8px', border: 'none', fontWeight: 600, fontSize: '13px', cursor: 'pointer', backgroundColor: tab === t.key ? '#39442A' : 'transparent', color: tab === t.key ? '#A2B074' : 'rgba(255,255,255,0.7)' }}>
             {t.label}
@@ -281,7 +282,43 @@ function AdminSurface() {
         {tab === 'members' && <MembersTab />}
         {tab === 'redemptions' && <RedemptionsTab />}
         {tab === 'payouts' && <PayoutsTab />}
+        {tab === 'settings' && <SettingsTab />}
       </div>
+    </div>
+  );
+}
+
+function SettingsTab() {
+  const [settings, setSettings] = useState<any | null>(null);
+
+  useEffect(() => {
+    api.adminGetSettings().then((r) => setSettings(r.settings)).catch(() => setSettings(null));
+  }, []);
+
+  return (
+    <div>
+      <SectionTitle>Settings</SectionTitle>
+      {!settings ? (
+        <div style={{ color: '#6E7359', fontSize: '13px' }}>Loading settings…</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '480px' }}>
+          <div style={card}>
+            <div style={{ fontSize: '12px', color: '#6E7359', marginBottom: '4px' }}>Credit value</div>
+            <div style={{ fontSize: '22px', fontWeight: 600, fontFamily: 'Source Serif 4, serif' }}>
+              1 credit = ${settings.creditValueUsd.toFixed(2)}
+            </div>
+          </div>
+          <div style={card}>
+            <div style={{ fontSize: '12px', color: '#6E7359', marginBottom: '4px' }}>Membership plan (held in Stripe — read only)</div>
+            <div style={{ fontSize: '22px', fontWeight: 600, fontFamily: 'Source Serif 4, serif' }}>
+              ${settings.planPriceUsd?.toFixed(2) ?? '—'} / {settings.planInterval ?? '—'}
+            </div>
+            <div style={{ fontSize: '13px', color: '#6E7359', marginTop: '4px' }}>
+              {settings.planName} · {settings.creditsPerMonth} credits per {settings.planInterval}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -413,9 +450,37 @@ function CafeDrawer({ cafe, onClose, onSave, onResetPin, pinMessage }: { cafe: a
     name: cafe.name || '',
     neighborhood: cafe.neighborhood || '',
     address: cafe.address || '',
+    latitude: cafe.latitude ?? '',
+    longitude: cafe.longitude ?? '',
     hours: cafe.hours || '',
     payoutRate: cafe.payoutRate ?? 3.5,
+    image: cafe.image || '',
+    gallery: (cafe.gallery as string[]) || [],
+    vibeTags: (cafe.vibeTags as string[]) || [],
+    perkLine: cafe.perkLine || '',
   });
+  const [newTag, setNewTag] = useState('');
+  const [newGalleryUrl, setNewGalleryUrl] = useState('');
+
+  const addTag = () => {
+    const tag = newTag.trim();
+    if (tag && !form.vibeTags.includes(tag)) {
+      setForm({ ...form, vibeTags: [...form.vibeTags, tag] });
+    }
+    setNewTag('');
+  };
+
+  const removeTag = (tag: string) => setForm({ ...form, vibeTags: form.vibeTags.filter((t) => t !== tag) });
+
+  const addGalleryUrl = () => {
+    const url = newGalleryUrl.trim();
+    if (url && !form.gallery.includes(url)) {
+      setForm({ ...form, gallery: [...form.gallery, url] });
+    }
+    setNewGalleryUrl('');
+  };
+
+  const removeGalleryUrl = (url: string) => setForm({ ...form, gallery: form.gallery.filter((u) => u !== url) });
 
   return (
     <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: '400px', backgroundColor: '#FFFFFF', borderLeft: '1px solid #DEE3D0', padding: '28px', display: 'flex', flexDirection: 'column', gap: '14px', zIndex: 60, boxShadow: '-4px 0 24px rgba(0,0,0,0.08)', overflowY: 'auto' }}>
@@ -426,10 +491,87 @@ function CafeDrawer({ cafe, onClose, onSave, onResetPin, pinMessage }: { cafe: a
       <input placeholder="Cafe Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={input} />
       <input placeholder="Neighborhood" value={form.neighborhood} onChange={(e) => setForm({ ...form, neighborhood: e.target.value })} style={input} />
       <input placeholder="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} style={input} />
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <input
+          type="number"
+          step="0.0001"
+          placeholder="Latitude"
+          value={form.latitude}
+          onChange={(e) => setForm({ ...form, latitude: e.target.value === '' ? '' : Number(e.target.value) })}
+          style={{ ...input, flex: 1 }}
+        />
+        <input
+          type="number"
+          step="0.0001"
+          placeholder="Longitude"
+          value={form.longitude}
+          onChange={(e) => setForm({ ...form, longitude: e.target.value === '' ? '' : Number(e.target.value) })}
+          style={{ ...input, flex: 1 }}
+        />
+      </div>
       <input placeholder="Hours" value={form.hours} onChange={(e) => setForm({ ...form, hours: e.target.value })} style={input} />
       <div>
         <div style={{ fontSize: '12px', color: '#6E7359', marginBottom: '4px' }}>Payout Rate ($/credit)</div>
         <input type="number" step="0.25" value={form.payoutRate} onChange={(e) => setForm({ ...form, payoutRate: Number(e.target.value) })} style={input} />
+      </div>
+
+      <div>
+        <div style={{ fontSize: '12px', color: '#6E7359', marginBottom: '4px' }}>Perk line</div>
+        <input
+          placeholder="e.g. Free WiFi + 10% off pastries"
+          value={form.perkLine}
+          onChange={(e) => setForm({ ...form, perkLine: e.target.value })}
+          style={input}
+        />
+      </div>
+
+      <div>
+        <div style={{ fontSize: '12px', color: '#6E7359', marginBottom: '4px' }}>Cover photo URL</div>
+        <input placeholder="https://…" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} style={input} />
+      </div>
+
+      <div>
+        <div style={{ fontSize: '12px', color: '#6E7359', marginBottom: '4px' }}>Vibe tags</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+          {form.vibeTags.map((tag) => (
+            <span key={tag} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '999px', backgroundColor: '#EEF1E3', fontSize: '12px', fontWeight: 600, color: '#2B3320' }}>
+              {tag}
+              <button onClick={() => removeTag(tag)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: '#6E7359', lineHeight: 1 }}>✕</button>
+            </span>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <input
+            placeholder="Add a tag and press Enter"
+            value={newTag}
+            onChange={(e) => setNewTag(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+            style={{ ...input, flex: 1 }}
+          />
+          <button onClick={addTag} style={secondaryBtn}>Add</button>
+        </div>
+      </div>
+
+      <div>
+        <div style={{ fontSize: '12px', color: '#6E7359', marginBottom: '4px' }}>Gallery photo URLs</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
+          {form.gallery.map((url) => (
+            <div key={url} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', borderRadius: '6px', backgroundColor: '#FAFBF6', border: '1px solid #EEF1E3' }}>
+              <span style={{ flex: 1, fontSize: '11px', color: '#6E7359', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{url}</span>
+              <button onClick={() => removeGalleryUrl(url)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: '#B84C3E' }}>✕</button>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <input
+            placeholder="Paste an image URL and press Enter"
+            value={newGalleryUrl}
+            onChange={(e) => setNewGalleryUrl(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addGalleryUrl())}
+            style={{ ...input, flex: 1 }}
+          />
+          <button onClick={addGalleryUrl} style={secondaryBtn}>Add</button>
+        </div>
       </div>
 
       {onResetPin && (

@@ -95,6 +95,9 @@ export interface ApiCafe {
   name: string;
   neighborhood: string;
   address: string;
+  latitude: number | null;
+  longitude: number | null;
+  distanceMiles: number | null;
   hours: string;
   open: boolean;
   price: string;
@@ -193,8 +196,9 @@ export const api = {
     await setToken(null);
   },
 
-  listCafes: (params: { neighborhood?: string; search?: string } = {}) => {
-    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][]).toString();
+  listCafes: (params: { neighborhood?: string; search?: string; lat?: number; lng?: number } = {}) => {
+    const entries = Object.entries(params).filter(([, v]) => v !== undefined && v !== '');
+    const qs = new URLSearchParams(entries.map(([k, v]) => [k, String(v)])).toString();
     return request<{ cafes: ApiCafe[] }>(`/api/cafes${qs ? `?${qs}` : ''}`).then((r) => r.cafes);
   },
 

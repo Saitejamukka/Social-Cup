@@ -23,7 +23,7 @@ interface AppState {
   // ---- Cafes (fetched from the real API) ----
   cafes: ApiCafe[];
   cafesLoading: boolean;
-  fetchCafes: (params?: { neighborhood?: string; search?: string }) => Promise<void>;
+  fetchCafes: (params?: { neighborhood?: string; search?: string; lat?: number; lng?: number }) => Promise<void>;
   getCafe: (id: string) => ApiCafe | undefined;
 
   // ---- Drink diary (fetched from the real API) ----
@@ -46,6 +46,14 @@ interface AppState {
   // ---- Local-only UI preferences (no backend — out of scope for phase 1) ----
   locationAllowed: boolean | null;
   setLocationAllowed: (allowed: boolean | null) => void;
+  // The device's actual last-known coordinates, captured once location permission
+  // is granted (onboarding, or later from the Discover screen toggle).
+  userCoords: { latitude: number; longitude: number } | null;
+  setUserCoords: (coords: { latitude: number; longitude: number } | null) => void;
+  // PRD 3.1: "A toggle that turns distance sorting off" — independent of whether
+  // permission was granted, so a member can always fall back to the default order.
+  distanceSortEnabled: boolean;
+  setDistanceSortEnabled: (enabled: boolean) => void;
   offlineSim: boolean;
   setOfflineSim: (offline: boolean) => void;
   savedCafeIds: string[];
@@ -229,6 +237,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   locationAllowed: null,
   setLocationAllowed: (locationAllowed) => set({ locationAllowed }),
+  userCoords: null,
+  setUserCoords: (userCoords) => set({ userCoords }),
+  distanceSortEnabled: true,
+  setDistanceSortEnabled: (distanceSortEnabled) => set({ distanceSortEnabled }),
   offlineSim: false,
   setOfflineSim: (offlineSim) => set({ offlineSim }),
   savedCafeIds: [],

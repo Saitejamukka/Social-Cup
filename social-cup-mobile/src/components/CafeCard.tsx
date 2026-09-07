@@ -59,7 +59,10 @@ export const CafeCard: React.FC<CafeCardProps> = ({
           )}
         </View>
 
-        <Text style={styles.neighborhood}>{cafe.neighborhood}</Text>
+        <Text style={styles.neighborhood}>
+          {cafe.neighborhood}
+          {cafe.distanceMiles !== null ? ` · ${cafe.distanceMiles} mi` : ''}
+        </Text>
 
         {cafe.tags && cafe.tags.length > 0 && (
           <Text style={styles.tags} numberOfLines={1}>

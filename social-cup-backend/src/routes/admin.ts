@@ -1,10 +1,31 @@
 import { Router, Response } from 'express';
 import { randomBytes } from 'crypto';
 import { prisma } from '../lib/prisma.js';
+import { stripe, STRIPE_PRICE_ID } from '../lib/stripe.js';
 import { requireAuth, requireRole, AuthedRequest } from '../lib/auth.js';
 
 const router = Router();
 router.use(requireAuth, requireRole('ADMIN'));
+
+// GET /api/admin/settings — PRD 9.2: credit value and plan price/credits, both
+// read-only here since the plan price actually lives in Stripe and the credit
+// value / monthly allowance are fixed business constants, not admin-editable yet.
+router.get('/settings', async (_req: AuthedRequest, res: Response) => {
+  const price = await stripe.prices.retrieve(STRIPE_PRICE_ID, { expand: ['product'] });
+  const product = price.product as import('stripe').Stripe.Product;
+
+  res.json({
+    success: true,
+    settings: {
+      creditValueUsd: 1,
+      creditsPerMonth: 30,
+      planName: product.name,
+      planPriceUsd: price.unit_amount !== null ? price.unit_amount / 100 : null,
+      planInterval: price.recurring?.interval ?? null,
+      currency: price.currency.toUpperCase(),
+    },
+  });
+});
 
 // ---------------- Dashboard ----------------
 
@@ -52,7 +73,7 @@ router.get('/cafes', async (_req: AuthedRequest, res: Response) => {
 
 // POST /api/admin/cafes
 router.post('/cafes', async (req: AuthedRequest, res: Response) => {
-  const { name, neighborhood, address, hours, payoutRate, isFeatured, vibeTags, image } = req.body ?? {};
+  const { name, neighborhood, address, latitude, longitude, hours, payoutRate, isFeatured, vibeTags, image, gallery, perkLine } = req.body ?? {};
   if (!name || !neighborhood || !address) {
     return res.status(400).json({ success: false, error: 'name, neighborhood, and address are required' });
   }
@@ -62,11 +83,15 @@ router.post('/cafes', async (req: AuthedRequest, res: Response) => {
       name,
       neighborhood,
       address,
+      latitude: latitude !== undefined && latitude !== '' ? Number(latitude) : null,
+      longitude: longitude !== undefined && longitude !== '' ? Number(longitude) : null,
       hours: hours || '',
       payoutRate: payoutRate !== undefined ? Number(payoutRate) : 3.5,
       isFeatured: Boolean(isFeatured),
       vibeTags: Array.isArray(vibeTags) ? vibeTags : [],
       image: image || null,
+      gallery: Array.isArray(gallery) ? gallery : [],
+      perkLine: perkLine || null,
       pinCode: String(randomBytes(2).readUInt16BE(0) % 9000 + 1000),
     },
   });
@@ -76,7 +101,7 @@ router.post('/cafes', async (req: AuthedRequest, res: Response) => {
 
 // PATCH /api/admin/cafes/:id
 router.patch('/cafes/:id', async (req: AuthedRequest, res: Response) => {
-  const { name, neighborhood, address, hours, isOpen, payoutRate, isFeatured, vibeTags, image, priceTier } = req.body ?? {};
+  const { name, neighborhood, address, latitude, longitude, hours, isOpen, payoutRate, isFeatured, vibeTags, image, gallery, perkLine, priceTier } = req.body ?? {};
 
   const cafe = await prisma.cafe.update({
     where: { id: req.params.id },
@@ -84,12 +109,16 @@ router.patch('/cafes/:id', async (req: AuthedRequest, res: Response) => {
       ...(name !== undefined ? { name } : {}),
       ...(neighborhood !== undefined ? { neighborhood } : {}),
       ...(address !== undefined ? { address } : {}),
+      ...(latitude !== undefined ? { latitude: latitude === '' ? null : Number(latitude) } : {}),
+      ...(longitude !== undefined ? { longitude: longitude === '' ? null : Number(longitude) } : {}),
       ...(hours !== undefined ? { hours } : {}),
       ...(isOpen !== undefined ? { isOpen: Boolean(isOpen) } : {}),
       ...(payoutRate !== undefined ? { payoutRate: Number(payoutRate) } : {}),
       ...(isFeatured !== undefined ? { isFeatured: Boolean(isFeatured) } : {}),
       ...(vibeTags !== undefined ? { vibeTags: Array.isArray(vibeTags) ? vibeTags : [vibeTags] } : {}),
       ...(image !== undefined ? { image } : {}),
+      ...(gallery !== undefined ? { gallery: Array.isArray(gallery) ? gallery : [gallery] } : {}),
+      ...(perkLine !== undefined ? { perkLine: perkLine || null } : {}),
       ...(priceTier !== undefined ? { priceTier } : {}),
     },
   });

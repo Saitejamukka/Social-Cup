@@ -2,7 +2,8 @@ export interface CafeData {
   id: string;
   name: string;
   neighborhood: string;
-  distance: string;
+  latitude: number;
+  longitude: number;
   address: string;
   hours: string;
   open: boolean;
@@ -32,7 +33,8 @@ export const DALLAS_CAFES: CafeData[] = [
     id: 'roastery-coffee-house',
     name: 'Roastery Coffee House',
     neighborhood: 'Bishop Arts',
-    distance: '0.4 mi',
+    latitude: 32.7480,
+    longitude: -96.8290,
     address: '408 N Bishop Ave, Dallas, TX 75208',
     hours: '8am–10pm daily',
     open: true,
@@ -57,7 +59,8 @@ export const DALLAS_CAFES: CafeData[] = [
     id: 'cafe-niloufer',
     name: 'Café Niloufer',
     neighborhood: 'Deep Ellum',
-    distance: '1.1 mi',
+    latitude: 32.7846,
+    longitude: -96.7838,
     address: '2639 Main St, Dallas, TX 75226',
     hours: '6:30am–11pm daily',
     open: true,
@@ -81,7 +84,8 @@ export const DALLAS_CAFES: CafeData[] = [
     id: 'concu',
     name: 'Conçu',
     neighborhood: 'Uptown',
-    distance: '1.6 mi',
+    latitude: 32.7891,
+    longitude: -96.8009,
     address: '2800 Routh St, Dallas, TX 75201',
     hours: '9am–10:30pm daily',
     open: true,
@@ -105,7 +109,8 @@ export const DALLAS_CAFES: CafeData[] = [
     id: 'true-black',
     name: 'True Black Specialty Coffee',
     neighborhood: 'Knox-Henderson',
-    distance: '2.1 mi',
+    latitude: 32.8218,
+    longitude: -96.7955,
     address: '3102 Knox St, Dallas, TX 75205',
     hours: '7:30am–9pm daily',
     open: true,
@@ -129,7 +134,8 @@ export const DALLAS_CAFES: CafeData[] = [
     id: 'subko-coffee',
     name: 'Subko Coffee',
     neighborhood: 'Lower Greenville',
-    distance: '2.5 mi',
+    latitude: 32.8103,
+    longitude: -96.7691,
     address: '2008 Greenville Ave, Dallas, TX 75206',
     hours: '7:30am–10pm daily',
     open: true,
@@ -153,7 +159,8 @@ export const DALLAS_CAFES: CafeData[] = [
     id: 'blue-tokai',
     name: 'Blue Tokai Coffee Roasters',
     neighborhood: 'Design District',
-    distance: '2.7 mi',
+    latitude: 32.7908,
+    longitude: -96.8280,
     address: '1405 Dragon St, Dallas, TX 75207',
     hours: '7am–9pm daily',
     open: true,
@@ -177,7 +184,8 @@ export const DALLAS_CAFES: CafeData[] = [
     id: 'autumn-leaf',
     name: 'Autumn Leaf Café',
     neighborhood: 'Lakewood',
-    distance: '3.2 mi',
+    latitude: 32.8237,
+    longitude: -96.7590,
     address: '6333 E Mockingbird Ln, Dallas, TX 75214',
     hours: '8:30am–10pm daily',
     open: true,
@@ -201,7 +209,8 @@ export const DALLAS_CAFES: CafeData[] = [
     id: 'roast-ccx',
     name: 'Roast CCX',
     neighborhood: 'Downtown Dallas',
-    distance: '1.5 mi',
+    latitude: 32.7809,
+    longitude: -96.8020,
     address: '1401 Elm St, Dallas, TX 75202',
     hours: '7am–10pm daily',
     open: true,

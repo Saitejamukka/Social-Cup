@@ -80,6 +80,8 @@ model Cafe {
   name         String
   neighborhood String
   address      String
+  latitude     Float?
+  longitude    Float?
   hours        String
   isOpen       Boolean        @default(true)
   priceTier    String         @default("$$")
@@ -89,6 +91,8 @@ model Cafe {
   pinVersion   Int            @default(1)
   isFeatured   Boolean        @default(false)
   vibeTags     String[]       @default([])
+  // A short one-line perk shown to help members choose, e.g. "Free WiFi + 10% off pastries."
+  perkLine     String?
   image        String?
   gallery      String[]       @default([])
   createdAt    DateTime       @default(now()) @db.Timestamptz(3)

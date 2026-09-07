@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as Location from 'expo-location';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { useAppStore } from '../../store/useAppStore';
@@ -19,15 +20,38 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Onboarding'>;
 export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
   const [step, setStep] = useState(0);
   const [finishing, setFinishing] = useState(false);
+  const [requestingLocation, setRequestingLocation] = useState(false);
   const {
     draftPreferences,
     toggleDraftPreference,
     draftNeighborhood,
     setDraftNeighborhood,
     setLocationAllowed,
+    setUserCoords,
     locationAllowed,
     updateProfile,
   } = useAppStore();
+
+  const handleAllowLocation = async () => {
+    setRequestingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLocationAllowed(false);
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({});
+      setUserCoords({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+      setLocationAllowed(true);
+      await handleFinish();
+    } catch {
+      // Permission granted but position unavailable (e.g. GPS off) — fall back
+      // to neighbourhood-based ordering rather than blocking onboarding.
+      setLocationAllowed(false);
+    } finally {
+      setRequestingLocation(false);
+    }
+  };
 
   const handleFinish = async () => {
     setFinishing(true);
@@ -154,13 +178,14 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.locationActions}>
                 <TouchableOpacity
                   style={styles.primaryBtn}
-                  onPress={() => {
-                    setLocationAllowed(true);
-                    handleFinish();
-                  }}
-                  disabled={finishing}
+                  onPress={handleAllowLocation}
+                  disabled={finishing || requestingLocation}
                 >
-                  {finishing ? <ActivityIndicator color={Colors.ink} /> : <Text style={styles.primaryBtnText}>Allow location</Text>}
+                  {finishing || requestingLocation ? (
+                    <ActivityIndicator color={Colors.ink} />
+                  ) : (
+                    <Text style={styles.primaryBtnText}>Allow location</Text>
+                  )}
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.secondaryBtn} onPress={() => setLocationAllowed(false)}>
