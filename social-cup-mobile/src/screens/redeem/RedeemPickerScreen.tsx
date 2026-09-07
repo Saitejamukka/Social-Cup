@@ -12,6 +12,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { api, ApiCafe } from '../../api/client';
 
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '600',
     color: Colors.ink,
-    fontFamily: 'serif',
+    fontFamily: Fonts.display,
   },
   balance: {
     fontSize: 13,

@@ -14,8 +14,11 @@ import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, TabParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { CafeCard } from '../../components/CafeCard';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'DiscoverTab'>,
@@ -137,23 +140,20 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Featured cafes</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
-                  {featuredCafes.map((cafe) => (
-                    <TouchableOpacity
-                      key={cafe.id}
-                      style={styles.featuredCard}
-                      onPress={() => handleSelectCafe(cafe.id)}
-                      activeOpacity={0.8}
-                    >
-                      {cafe.image ? (
-                        <Image source={{ uri: cafe.image }} style={styles.featuredImage} resizeMode="cover" />
-                      ) : (
-                        <View style={styles.featuredImage}>
-                          <Text style={styles.featuredImageText}>☕ {cafe.name}</Text>
-                        </View>
-                      )}
-                      <Text style={styles.featuredName}>{cafe.name}</Text>
-                      <Text style={styles.featuredSub}>{cafe.neighborhood}</Text>
-                    </TouchableOpacity>
+                  {featuredCafes.map((cafe, i) => (
+                    <FadeSlideIn key={cafe.id} delay={i * 60}>
+                      <AnimatedPressable style={styles.featuredCard} onPress={() => handleSelectCafe(cafe.id)}>
+                        {cafe.image ? (
+                          <Image source={{ uri: cafe.image }} style={styles.featuredImage} resizeMode="cover" />
+                        ) : (
+                          <View style={styles.featuredImage}>
+                            <Text style={styles.featuredImageText}>☕ {cafe.name}</Text>
+                          </View>
+                        )}
+                        <Text style={styles.featuredName}>{cafe.name}</Text>
+                        <Text style={styles.featuredSub}>{cafe.neighborhood}</Text>
+                      </AnimatedPressable>
+                    </FadeSlideIn>
                   ))}
                 </ScrollView>
               </View>
@@ -163,30 +163,27 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Signature drinks</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
-                  {signatureDrinks.map((drink) => (
-                    <TouchableOpacity
-                      key={drink.id}
-                      style={styles.signatureCard}
-                      onPress={() => handleSelectCafe(drink.cafeId)}
-                      activeOpacity={0.8}
-                    >
-                      <View style={styles.signatureImageWrapper}>
-                        {drink.image ? (
-                          <Image source={{ uri: drink.image }} style={styles.signatureImage} resizeMode="cover" />
-                        ) : (
-                          <View style={styles.signatureImage} />
-                        )}
-                        <View style={styles.signatureBadgeContainer}>
-                          <Text style={styles.signatureBadge}>Signature</Text>
+                  {signatureDrinks.map((drink, i) => (
+                    <FadeSlideIn key={drink.id} delay={i * 60}>
+                      <AnimatedPressable style={styles.signatureCard} onPress={() => handleSelectCafe(drink.cafeId)}>
+                        <View style={styles.signatureImageWrapper}>
+                          {drink.image ? (
+                            <Image source={{ uri: drink.image }} style={styles.signatureImage} resizeMode="cover" />
+                          ) : (
+                            <View style={styles.signatureImage} />
+                          )}
+                          <View style={styles.signatureBadgeContainer}>
+                            <Text style={styles.signatureBadge}>Signature</Text>
+                          </View>
                         </View>
-                      </View>
-                      <Text style={styles.signatureName} numberOfLines={1}>
-                        {drink.name}
-                      </Text>
-                      <Text style={styles.signatureSub}>
-                        {drink.cafeName} · {drink.creditsCost} cr
-                      </Text>
-                    </TouchableOpacity>
+                        <Text style={styles.signatureName} numberOfLines={1}>
+                          {drink.name}
+                        </Text>
+                        <Text style={styles.signatureSub}>
+                          {drink.cafeName} · {drink.creditsCost} cr
+                        </Text>
+                      </AnimatedPressable>
+                    </FadeSlideIn>
                   ))}
                 </ScrollView>
               </View>
@@ -195,13 +192,14 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>New on Social Cup</Text>
               <View style={styles.cafeList}>
-                {cafes.map((cafe) => (
-                  <CafeCard
-                    key={cafe.id}
-                    cafe={cafe}
-                    onPress={() => handleSelectCafe(cafe.id)}
-                    showSaveButton
-                  />
+                {cafes.map((cafe, i) => (
+                  <FadeSlideIn key={cafe.id} delay={Math.min(i * 50, 300)}>
+                    <CafeCard
+                      cafe={cafe}
+                      onPress={() => handleSelectCafe(cafe.id)}
+                      showSaveButton
+                    />
+                  </FadeSlideIn>
                 ))}
               </View>
             </View>
@@ -234,7 +232,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: Colors.ink,
-    fontFamily: 'serif',
+    fontFamily: Fonts.display,
   },
   profileAvatar: {
     width: 40,
@@ -406,7 +404,7 @@ const styles = StyleSheet.create({
     fontSize: 19,
     fontWeight: '600',
     color: Colors.ink,
-    fontFamily: 'serif',
+    fontFamily: Fonts.display,
   },
   offlineSubtitle: {
     fontSize: 14,

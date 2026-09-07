@@ -13,8 +13,10 @@ import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, TabParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { showAlert } from '../../utils/alert';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'ProfileTab'>,
@@ -88,7 +90,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         {/* Profile Header */}
-        <View style={styles.userHeader}>
+        <FadeSlideIn style={styles.userHeader}>
           <View style={styles.avatar}>
             <Text style={styles.avatarGlyph}>👤</Text>
           </View>
@@ -96,11 +98,11 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.name}>{user?.name ?? ''}</Text>
             <Text style={[styles.status, { color: statusColor }]}>{statusLabel}</Text>
           </View>
-        </View>
+        </FadeSlideIn>
 
         {/* Member / Visitor Card */}
         {isMember ? (
-          <View style={styles.creditCard}>
+          <FadeSlideIn delay={80} style={styles.creditCard}>
             <View style={styles.creditCardHeader}>
               <Text style={styles.creditNumber}>{user?.credits ?? 0}</Text>
               <Text style={styles.creditTotal}>/ 30 credits</Text>
@@ -123,9 +125,9 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={styles.cancelMembershipText}>Cancel membership</Text>
               </TouchableOpacity>
             )}
-          </View>
+          </FadeSlideIn>
         ) : (
-          <View style={styles.visitorCard}>
+          <FadeSlideIn delay={80} style={styles.visitorCard}>
             <Text style={styles.visitorTitle}>
               {user?.accountStatus === 'CANCELED' ? "You're no longer a member" : "You're browsing as a Visitor"}
             </Text>
@@ -138,7 +140,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
             >
               <Text style={styles.membershipBtnText}>See membership</Text>
             </TouchableOpacity>
-          </View>
+          </FadeSlideIn>
         )}
 
         {/* Settings & Links List */}
@@ -244,7 +246,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: Colors.ink,
-    fontFamily: 'serif',
+    fontFamily: Fonts.display,
   },
   status: {
     fontSize: 12,
@@ -268,7 +270,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: Colors.gold,
-    fontFamily: 'serif',
+    fontFamily: Fonts.display,
   },
   creditTotal: {
     fontSize: 13,

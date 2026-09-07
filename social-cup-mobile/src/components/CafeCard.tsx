@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { ApiCafe } from '../api/client';
 import { Colors } from '../theme/colors';
 import { useAppStore } from '../store/useAppStore';
+import { AnimatedPressable } from './AnimatedPressable';
 
 interface CafeCardProps {
   cafe: ApiCafe;
@@ -18,11 +19,7 @@ export const CafeCard: React.FC<CafeCardProps> = ({
   const isSaved = savedCafeIds.includes(cafe.id);
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
+    <AnimatedPressable style={styles.card} onPress={onPress}>
       {/* Thumbnail */}
       {cafe.image ? (
         <Image
@@ -77,7 +74,7 @@ export const CafeCard: React.FC<CafeCardProps> = ({
           <Text style={styles.rating}>{cafe.rating !== null ? `★ ${cafe.rating.toFixed(1)}` : 'New'}</Text>
         </View>
       </View>
-    </TouchableOpacity>
+    </AnimatedPressable>
   );
 };
 

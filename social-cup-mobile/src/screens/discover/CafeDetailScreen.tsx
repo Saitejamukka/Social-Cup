@@ -14,9 +14,12 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { api, ApiCafe } from '../../api/client';
 import { showAlert } from '../../utils/alert';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -86,7 +89,7 @@ export const CafeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
 
         {/* Info Header */}
-        <View style={styles.headerInfo}>
+        <FadeSlideIn style={styles.headerInfo}>
           <View style={styles.titleRow}>
             <Text style={styles.name}>{cafe.name}</Text>
             <View
@@ -126,13 +129,13 @@ export const CafeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
             ))}
           </View>
-        </View>
+        </FadeSlideIn>
 
         {/* Menu Section */}
         <View style={styles.menuSection}>
           <Text style={styles.menuHeader}>Menu</Text>
-          {cafe.drinks.map((drink) => (
-            <View key={drink.id} style={styles.drinkRow}>
+          {cafe.drinks.map((drink, i) => (
+            <FadeSlideIn key={drink.id} delay={80 + i * 50} style={styles.drinkRow}>
               {drink.image ? (
                 <Image
                   source={{ uri: drink.image }}
@@ -175,7 +178,7 @@ export const CafeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                   </View>
                 </View>
               </View>
-            </View>
+            </FadeSlideIn>
           ))}
         </View>
       </ScrollView>
@@ -194,7 +197,7 @@ export const CafeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             </Text>
           )}
 
-          <TouchableOpacity
+          <AnimatedPressable
             style={[
               styles.redeemBtn,
               (!isMember || hasCredits)
@@ -214,7 +217,7 @@ export const CafeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             >
               {isMember ? 'Redeem a drink' : 'Become a member'}
             </Text>
-          </TouchableOpacity>
+          </AnimatedPressable>
         </View>
       </SafeAreaView>
     </View>
@@ -269,7 +272,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '600',
     color: Colors.ink,
-    fontFamily: 'serif',
+    fontFamily: Fonts.display,
   },
   openBadge: {
     paddingHorizontal: 10,

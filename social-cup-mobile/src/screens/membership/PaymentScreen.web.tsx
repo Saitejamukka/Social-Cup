@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-na
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { Fonts } from '../../theme/typography';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Payment'>;
 
@@ -31,6 +32,6 @@ const styles = StyleSheet.create({
   backBtn: { paddingVertical: 4, alignSelf: 'flex-start' },
   backBtnText: { fontSize: 22, fontWeight: '600', color: Colors.ink },
   centerBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
-  title: { fontSize: 20, fontWeight: '600', color: Colors.ink, textAlign: 'center', fontFamily: 'serif' },
+  title: { fontSize: 20, fontWeight: '600', color: Colors.ink, textAlign: 'center', fontFamily: Fonts.display },
   subtitle: { fontSize: 14, color: Colors.mute, textAlign: 'center', lineHeight: 20 },
 });

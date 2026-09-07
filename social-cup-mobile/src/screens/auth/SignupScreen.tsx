@@ -12,12 +12,15 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { ApiError } from '../../api/client';
 import { useGoogleAuthRequest, extractGoogleIdToken } from '../../auth/googleAuth';
 import { GoogleIcon } from '../../components/GoogleIcon';
 import { AppleIcon } from '../../components/AppleIcon';
 import { showAlert } from '../../utils/alert';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Signup'>;
 
@@ -94,25 +97,25 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.backBtnText}>←</Text>
         </TouchableOpacity>
 
-        <View style={styles.header}>
+        <FadeSlideIn style={styles.header}>
           <Text style={styles.title}>Create your account</Text>
           <Text style={styles.subtitle}>
             Free to browse, rate, and build your diary.
           </Text>
-        </View>
+        </FadeSlideIn>
 
         {/* Social Buttons */}
-        <View style={styles.socialGroup}>
-          <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleSignup} disabled={submitting || !googleRequest}>
+        <FadeSlideIn delay={80} style={styles.socialGroup}>
+          <AnimatedPressable style={styles.googleBtn} onPress={handleGoogleSignup} disabled={submitting || !googleRequest}>
             <GoogleIcon />
             <Text style={styles.googleBtnText}>Continue with Google</Text>
-          </TouchableOpacity>
+          </AnimatedPressable>
 
-          <TouchableOpacity style={styles.appleBtn} onPress={appleComingSoon}>
+          <AnimatedPressable style={styles.appleBtn} onPress={appleComingSoon}>
             <AppleIcon />
             <Text style={styles.appleBtnText}>Continue with Apple</Text>
-          </TouchableOpacity>
-        </View>
+          </AnimatedPressable>
+        </FadeSlideIn>
 
         {/* Divider */}
         <View style={styles.dividerRow}>
@@ -122,7 +125,7 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         {/* Form Inputs */}
-        <View style={styles.form}>
+        <FadeSlideIn delay={140} style={styles.form}>
           <View style={styles.inputWrapper}>
             <Text style={styles.inputLabel}>Display name</Text>
             <TextInput
@@ -158,13 +161,13 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
               secureTextEntry
             />
           </View>
-        </View>
+        </FadeSlideIn>
 
         {error && <Text style={styles.errorText}>{error}</Text>}
 
-        <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={submitting}>
+        <AnimatedPressable style={styles.submitBtn} onPress={handleSubmit} disabled={submitting}>
           {submitting ? <ActivityIndicator color={Colors.ink} /> : <Text style={styles.submitBtnText}>Create account</Text>}
-        </TouchableOpacity>
+        </AnimatedPressable>
 
         <View style={styles.footerRow}>
           <Text style={styles.footerText}>Already have an account? </Text>
@@ -202,7 +205,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '600',
     color: Colors.ink,
-    fontFamily: 'serif',
+    fontFamily: Fonts.display,
   },
   subtitle: {
     fontSize: 14,

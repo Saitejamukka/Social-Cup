@@ -3,8 +3,12 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'rea
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { api, ApiCafe } from '../../api/client';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
+import { PopIn } from '../../components/PopIn';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RedeemSuccess'>;
 
@@ -37,39 +41,41 @@ export const RedeemSuccessScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.checkCircle}>
+        <PopIn style={styles.checkCircle}>
           <Text style={styles.checkGlyph}>✓</Text>
-        </View>
+        </PopIn>
 
-        <Text style={styles.title}>Redeemed</Text>
-        {!cafe || !drink ? (
-          <ActivityIndicator color={Colors.white} />
-        ) : (
-          <>
-            <Text style={styles.subtitle}>
-              {drink.name} · {cafe.name}
-            </Text>
+        <FadeSlideIn delay={150} style={styles.textGroup}>
+          <Text style={styles.title}>Redeemed</Text>
+          {!cafe || !drink ? (
+            <ActivityIndicator color={Colors.white} />
+          ) : (
+            <>
+              <Text style={styles.subtitle}>
+                {drink.name} · {cafe.name}
+              </Text>
 
-            <View style={styles.creditsRow}>
-              <View style={styles.creditStat}>
-                <Text style={styles.creditVal}>-{drink.creditsCost}</Text>
-                <Text style={styles.creditLabel}>credits used</Text>
+              <View style={styles.creditsRow}>
+                <View style={styles.creditStat}>
+                  <Text style={styles.creditVal}>-{drink.creditsCost}</Text>
+                  <Text style={styles.creditLabel}>credits used</Text>
+                </View>
+                <View style={styles.creditStat}>
+                  <Text style={[styles.creditVal, { color: Colors.gold }]}>{user?.credits ?? 0}</Text>
+                  <Text style={styles.creditLabel}>remaining</Text>
+                </View>
               </View>
-              <View style={styles.creditStat}>
-                <Text style={[styles.creditVal, { color: Colors.gold }]}>{user?.credits ?? 0}</Text>
-                <Text style={styles.creditLabel}>remaining</Text>
-              </View>
-            </View>
-          </>
-        )}
+            </>
+          )}
 
-        <TouchableOpacity style={styles.primaryBtn} onPress={handleRate}>
-          <Text style={styles.primaryBtnText}>Rate this drink</Text>
-        </TouchableOpacity>
+          <AnimatedPressable style={styles.primaryBtn} onPress={handleRate}>
+            <Text style={styles.primaryBtnText}>Rate this drink</Text>
+          </AnimatedPressable>
 
-        <TouchableOpacity onPress={handleSkip} style={styles.skipBtn}>
-          <Text style={styles.skipBtnText}>Skip to diary</Text>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={handleSkip} style={styles.skipBtn}>
+            <Text style={styles.skipBtnText}>Skip to diary</Text>
+          </TouchableOpacity>
+        </FadeSlideIn>
       </View>
     </View>
   );
@@ -83,6 +89,10 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   content: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  textGroup: {
     alignItems: 'center',
     gap: 16,
   },
@@ -104,7 +114,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '600',
     color: Colors.white,
-    fontFamily: 'serif',
+    fontFamily: Fonts.display,
   },
   subtitle: {
     fontSize: 15,
@@ -122,7 +132,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '600',
     color: Colors.white,
-    fontFamily: 'serif',
+    fontFamily: Fonts.display,
   },
   creditLabel: {
     fontSize: 11,

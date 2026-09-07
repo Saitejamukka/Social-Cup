@@ -13,6 +13,8 @@ import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { useAppStore } from '../../store/useAppStore';
 import { api } from '../../api/client';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
+import { PopIn } from '../../components/PopIn';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RedeemCode'>;
 
@@ -87,14 +89,14 @@ export const RedeemCodeScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.backBtnText}>←</Text>
         </TouchableOpacity>
 
-        <View style={styles.content}>
+        <FadeSlideIn style={styles.content}>
           <Text style={styles.headerSubtitle}>Show this to your barista</Text>
 
           {/* QR Code */}
-          <View style={styles.codeCard}>
+          <PopIn delay={100} style={styles.codeCard}>
             <QRCode value={activeRedemption.code} size={200} />
             <Text style={styles.codeText}>{activeRedemption.code}</Text>
-          </View>
+          </PopIn>
 
           {/* Timer */}
           <Text style={styles.timerText}>{secondsLeft > 0 ? timerLabel : 'Expiring…'}</Text>
@@ -108,7 +110,7 @@ export const RedeemCodeScreen: React.FC<Props> = ({ route, navigation }) => {
           <TouchableOpacity style={styles.cancelLink} onPress={handleCancel}>
             <Text style={styles.cancelLinkText}>Cancel this code</Text>
           </TouchableOpacity>
-        </View>
+        </FadeSlideIn>
       </View>
     </SafeAreaView>
   );

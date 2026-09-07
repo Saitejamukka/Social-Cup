@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Colors } from '../theme/colors';
+import { Fonts } from '../theme/typography';
 import { useAppStore } from '../store/useAppStore';
 import { api, ApiCafe } from '../api/client';
 
@@ -136,7 +137,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: Colors.ink,
-    fontFamily: 'serif',
+    fontFamily: Fonts.display,
   },
   cafeName: {
     fontSize: 13,

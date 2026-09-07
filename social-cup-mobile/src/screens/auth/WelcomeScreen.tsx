@@ -1,8 +1,11 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { Fonts } from '../../theme/typography';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Welcome'>;
 
@@ -10,37 +13,29 @@ export const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       {/* Top Hero Section */}
-      <View style={styles.heroSection}>
+      <FadeSlideIn style={styles.heroSection}>
         <Text style={styles.heroText}>☕</Text>
         <Text style={styles.heroSubtext}>Real drinks at the city's best independent cafes</Text>
-      </View>
+      </FadeSlideIn>
 
       {/* Bottom Action Section */}
       <View style={styles.bottomSection}>
-        <View style={styles.titleContainer}>
+        <FadeSlideIn delay={120} style={styles.titleContainer}>
           <Text style={styles.title}>Social Cup</Text>
           <Text style={styles.subtitle}>
             30 drink credits a month. Real drinks at the city's best independent cafes.
           </Text>
-        </View>
+        </FadeSlideIn>
 
-        <View style={styles.buttonGroup}>
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={() => navigation.navigate('Signup')}
-            activeOpacity={0.85}
-          >
+        <FadeSlideIn delay={220} style={styles.buttonGroup}>
+          <AnimatedPressable style={styles.primaryBtn} onPress={() => navigation.navigate('Signup')}>
             <Text style={styles.primaryBtnText}>Get started</Text>
-          </TouchableOpacity>
+          </AnimatedPressable>
 
-          <TouchableOpacity
-            style={styles.secondaryBtn}
-            onPress={() => navigation.navigate('Login')}
-            activeOpacity={0.85}
-          >
+          <AnimatedPressable style={styles.secondaryBtn} onPress={() => navigation.navigate('Login')}>
             <Text style={styles.secondaryBtnText}>I already have an account</Text>
-          </TouchableOpacity>
-        </View>
+          </AnimatedPressable>
+        </FadeSlideIn>
       </View>
     </View>
   );
@@ -81,7 +76,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: '700',
     color: Colors.ink,
-    fontFamily: 'serif',
+    fontFamily: Fonts.display,
   },
   subtitle: {
     fontSize: 15,

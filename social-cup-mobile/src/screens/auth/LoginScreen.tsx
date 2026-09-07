@@ -11,12 +11,15 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { ApiError } from '../../api/client';
 import { useGoogleAuthRequest, extractGoogleIdToken } from '../../auth/googleAuth';
 import { GoogleIcon } from '../../components/GoogleIcon';
 import { AppleIcon } from '../../components/AppleIcon';
 import { showAlert } from '../../utils/alert';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -97,21 +100,21 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.backBtnText}>←</Text>
         </TouchableOpacity>
 
-        <View style={styles.header}>
+        <FadeSlideIn style={styles.header}>
           <Text style={styles.title}>Welcome back</Text>
-        </View>
+        </FadeSlideIn>
 
-        <View style={styles.socialGroup}>
-          <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleLogin} disabled={submitting || !googleRequest}>
+        <FadeSlideIn delay={80} style={styles.socialGroup}>
+          <AnimatedPressable style={styles.googleBtn} onPress={handleGoogleLogin} disabled={submitting || !googleRequest}>
             <GoogleIcon />
             <Text style={styles.googleBtnText}>Sign in with Google</Text>
-          </TouchableOpacity>
+          </AnimatedPressable>
 
-          <TouchableOpacity style={styles.appleBtn} onPress={appleComingSoon}>
+          <AnimatedPressable style={styles.appleBtn} onPress={appleComingSoon}>
             <AppleIcon />
             <Text style={styles.appleBtnText}>Sign in with Apple</Text>
-          </TouchableOpacity>
-        </View>
+          </AnimatedPressable>
+        </FadeSlideIn>
 
         <View style={styles.dividerRow}>
           <View style={styles.dividerLine} />
@@ -119,7 +122,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.dividerLine} />
         </View>
 
-        <View style={styles.form}>
+        <FadeSlideIn delay={140} style={styles.form}>
           <View style={styles.inputWrapper}>
             <Text style={styles.inputLabel}>Email</Text>
             <TextInput
@@ -150,13 +153,13 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.forgotText}>Forgot password?</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </FadeSlideIn>
 
         {error && <Text style={styles.errorText}>{error}</Text>}
 
-        <TouchableOpacity style={styles.submitBtn} onPress={handleLogin} disabled={submitting}>
+        <AnimatedPressable style={styles.submitBtn} onPress={handleLogin} disabled={submitting}>
           {submitting ? <ActivityIndicator color={Colors.ink} /> : <Text style={styles.submitBtnText}>Log in</Text>}
-        </TouchableOpacity>
+        </AnimatedPressable>
       </View>
     </SafeAreaView>
   );
@@ -187,7 +190,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '600',
     color: Colors.ink,
-    fontFamily: 'serif',
+    fontFamily: Fonts.display,
   },
   socialGroup: {
     gap: 10,

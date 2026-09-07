@@ -4,8 +4,12 @@ import { useStripe } from '@stripe/stripe-react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { StripeSubscribeParams } from '../../api/client';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
+import { PopIn } from '../../components/PopIn';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Payment'>;
 
@@ -81,7 +85,7 @@ export const PaymentScreen: React.FC<Props> = ({ navigation }) => {
         )}
 
         {(stage === 'loading' || stage === 'ready' || stage === 'processing') && (
-          <View style={styles.formContainer}>
+          <FadeSlideIn style={styles.formContainer}>
             <Text style={styles.title}>Membership</Text>
             <Text style={styles.subtitle}>$24.99/month · 30 drink credits</Text>
 
@@ -92,7 +96,7 @@ export const PaymentScreen: React.FC<Props> = ({ navigation }) => {
                 <ActivityIndicator size="large" color={Colors.gold} />
               </View>
             ) : (
-              <TouchableOpacity
+              <AnimatedPressable
                 style={styles.payBtn}
                 onPress={handlePay}
                 disabled={stage === 'processing'}
@@ -102,22 +106,24 @@ export const PaymentScreen: React.FC<Props> = ({ navigation }) => {
                 ) : (
                   <Text style={styles.payBtnText}>Subscribe — $24.99/month</Text>
                 )}
-              </TouchableOpacity>
+              </AnimatedPressable>
             )}
-          </View>
+          </FadeSlideIn>
         )}
 
         {stage === 'success' && (
           <View style={styles.centerBox}>
-            <View style={styles.successBadge}>
+            <PopIn style={styles.successBadge}>
               <Text style={styles.successCheck}>✓</Text>
-            </View>
-            <Text style={styles.title}>You're a member!</Text>
-            <Text style={styles.successSub}>30 drink credits have been added to your account.</Text>
+            </PopIn>
+            <FadeSlideIn delay={150} style={{ alignItems: 'center', gap: 16 }}>
+              <Text style={styles.title}>You're a member!</Text>
+              <Text style={styles.successSub}>30 drink credits have been added to your account.</Text>
 
-            <TouchableOpacity style={styles.doneBtn} onPress={handleFinish}>
-              <Text style={styles.doneBtnText}>Done</Text>
-            </TouchableOpacity>
+              <AnimatedPressable style={styles.doneBtn} onPress={handleFinish}>
+                <Text style={styles.doneBtnText}>Done</Text>
+              </AnimatedPressable>
+            </FadeSlideIn>
           </View>
         )}
       </View>
@@ -152,7 +158,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '600',
     color: Colors.ink,
-    fontFamily: 'serif',
+    fontFamily: Fonts.display,
   },
   subtitle: {
     fontSize: 14,

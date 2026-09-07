@@ -10,6 +10,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { Fonts } from '../../theme/typography';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Membership'>;
 
@@ -99,7 +100,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '600',
     color: Colors.ink,
-    fontFamily: 'serif',
+    fontFamily: Fonts.display,
   },
   priceRow: {
     flexDirection: 'row',
@@ -110,7 +111,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '700',
     color: Colors.gold,
-    fontFamily: 'serif',
+    fontFamily: Fonts.display,
   },
   priceUnit: {
     fontSize: 14,
@@ -130,7 +131,7 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: '700',
     color: Colors.gold,
-    fontFamily: 'serif',
+    fontFamily: Fonts.display,
   },
   creditDesc: {
     flex: 1,
