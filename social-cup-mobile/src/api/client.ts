@@ -68,6 +68,7 @@ export interface ApiUser {
   authProvider: AuthProvider;
   subscriptionCancelAtPeriodEnd: boolean;
   subscriptionCurrentPeriodEnd: string | null;
+  emailVerified: boolean;
 }
 
 export interface StripeSubscribeParams {
@@ -174,6 +175,15 @@ export const api = {
   async logout() {
     await setToken(null);
   },
+
+  resendVerification: () =>
+    request<{ message: string }>('/api/auth/resend-verification', { method: 'POST' }),
+
+  forgotPassword: (email: string) =>
+    request<{ message: string }>('/api/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
 
   me: () => request<{ user: ApiUser }>('/api/auth/me').then((r) => r.user),
 

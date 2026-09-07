@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
@@ -7,10 +7,26 @@ import { Fonts } from '../../theme/typography';
 import { PopIn } from '../../components/PopIn';
 import { FadeSlideIn } from '../../components/FadeSlideIn';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
+import { api } from '../../api/client';
+import { showAlert } from '../../utils/alert';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VerifyEmail'>;
 
 export const VerifyEmailScreen: React.FC<Props> = ({ navigation }) => {
+  const [resending, setResending] = useState(false);
+
+  const handleResend = async () => {
+    setResending(true);
+    try {
+      await api.resendVerification();
+      showAlert('Email sent', 'Check your inbox for a new verification link.');
+    } catch (err: any) {
+      showAlert('Could not resend', err.message || 'Please try again in a moment.');
+    } finally {
+      setResending(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -32,8 +48,12 @@ export const VerifyEmailScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.primaryBtnText}>Continue</Text>
         </AnimatedPressable>
 
-        <TouchableOpacity style={styles.resendBtn}>
-          <Text style={styles.resendText}>Resend email</Text>
+        <TouchableOpacity style={styles.resendBtn} onPress={handleResend} disabled={resending}>
+          {resending ? (
+            <ActivityIndicator size="small" color={Colors.goldDark} />
+          ) : (
+            <Text style={styles.resendText}>Resend email</Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>

@@ -54,6 +54,14 @@ model User {
   authProvider  AuthProvider   @default(EMAIL)
   // The provider's stable subject id (Google/Apple `sub` claim). Null for EMAIL accounts.
   providerUserId String?
+  // OAuth signups start verified (the provider already confirmed the email). EMAIL
+  // signups start false until they click the link sent by /api/auth/register.
+  emailVerified            Boolean   @default(false)
+  emailVerificationToken   String?   @unique
+  emailVerificationExpires DateTime? @db.Timestamptz(3)
+  passwordResetToken       String?   @unique
+  // PRD 2.2: reset links expire after one hour.
+  passwordResetExpires     DateTime? @db.Timestamptz(3)
   // 1 credit = $1. Members get 30/month per the plan; resets on renewal, never rolls over.
   credits       Int            @default(0)
   stripeCustomerId     String?   @unique

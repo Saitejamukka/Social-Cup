@@ -13,7 +13,7 @@ import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
-import { ApiError } from '../../api/client';
+import { api, ApiError } from '../../api/client';
 import { useGoogleAuthRequest, extractGoogleIdToken } from '../../auth/googleAuth';
 import { GoogleIcon } from '../../components/GoogleIcon';
 import { AppleIcon } from '../../components/AppleIcon';
@@ -73,6 +73,32 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      showAlert('Enter your email first', 'Type your email address above, then tap "Forgot password?" again.');
+      return;
+    }
+    showAlert(
+      'Reset your password?',
+      `We'll send a reset link to ${trimmedEmail}.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send link',
+          onPress: async () => {
+            try {
+              await api.forgotPassword(trimmedEmail);
+              showAlert('Check your email', 'If that email has an account, a reset link is on its way.');
+            } catch (err: any) {
+              showAlert('Could not send reset link', err.message || 'Please check your connection and try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleGoogleLogin = async () => {
@@ -148,7 +174,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
             />
             <TouchableOpacity
               style={styles.forgotBtn}
-              onPress={() => showAlert('Not available yet', 'Password reset email delivery is not configured in this build.')}
+              onPress={handleForgotPassword}
             >
               <Text style={styles.forgotText}>Forgot password?</Text>
             </TouchableOpacity>

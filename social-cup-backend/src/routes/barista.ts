@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { signDeviceToken, requireDeviceAuth, DeviceAuthedRequest } from '../lib/auth.js';
 import { checkPinRateLimit, recordPinFailure, resetPinRateLimit } from '../lib/rateLimit.js';
+import { sendRedemptionConfirmationEmail } from '../lib/email.js';
 
 const router = Router();
 
@@ -120,7 +121,7 @@ router.post('/scan', deviceAuth, async (req: DeviceAuthedRequest, res: Response)
         data: { payoutRateSnapshot: cafe?.payoutRate ?? 0 },
       });
 
-      return { user, drink, redemption: redeemed };
+      return { user, drink, cafe, redemption: redeemed };
     });
 
     res.json({
@@ -129,6 +130,13 @@ router.post('/scan', deviceAuth, async (req: DeviceAuthedRequest, res: Response)
       member: { name: result.user.name },
       drink: { name: result.drink?.name ?? 'Drink' },
       credits: result.redemption.creditsDeducted,
+    });
+
+    // Fired after the response so a slow/failing send never delays the barista's screen.
+    sendRedemptionConfirmationEmail(result.user.email, result.user.name, {
+      drinkName: result.drink?.name ?? 'Drink',
+      cafeName: result.cafe?.name ?? 'the cafe',
+      creditsDeducted: result.redemption.creditsDeducted,
     });
   } catch (err: any) {
     if (err?.reason) {
