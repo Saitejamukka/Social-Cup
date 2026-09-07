@@ -20,25 +20,28 @@ Social Cup/
 ## 🚀 Applications
 
 ### 1. 📱 Customer Mobile App (`social-cup-mobile`)
-- **Built with**: React Native, Expo, TypeScript, Zustand, Lucide React Native.
+- **Built with**: React Native, Expo, TypeScript, Zustand.
 - **Features**:
-  - Browse curated specialty cafes mapped to Dallas neighborhoods (Bishop Arts, Deep Ellum, Uptown, Knox-Henderson, etc.).
+  - Sign up/log in with email or Google (real OAuth, verified server-side against Google's JWKS); Apple Sign-In is implemented but gated behind a paid Apple Developer account.
+  - Real Stripe subscriptions (test mode) — native PaymentSheet checkout, webhook-driven credit granting, cancel-at-period-end.
+  - Browse curated specialty cafes mapped to Dallas neighborhoods (Bishop Arts, Deep Ellum, Uptown, Knox-Henderson, etc.), with real GPS-based distance sorting (toggle-able) and a neighbourhood fallback when location is off.
   - Interactive photo galleries for cafes and signature specialty drinks.
-  - 5-Minute dynamic QR redemption code generator with live countdown timer and 6-character backup code.
+  - 5-minute redemption codes shown as a real scannable QR code, with a live countdown timer and 6-character backup code.
   - Personal Coffee Diary with 1–5 star ratings and tasting notes.
-  - Social midpoint cafe recommender for meeting up with friends.
 
 ### 2. 💻 Unified Business Web Portal (`social-cup-portal`)
 - **Built with**: React 19, Vite, TypeScript.
 - **Role-Based Portals**:
-  - **👑 HQ Administration**: Platform MRR, subscriber directory, live pricing and margin calculator, 30+ Dallas partner cafes management drawer, redemption audit trail with voiding modal, and monthly payout batches.
-  - **☕ Cafe Staff / Baristas**: Locked strictly to their assigned counter station, 4-digit station PIN security, camera viewfinder with green scanline animation, manual backup code entry, scan verification (Success / Expired / Already used / Wrong cafe), today's live redemption log, and monthly cafe earnings summary.
+  - **👑 HQ Administration**: Platform MRR, subscriber directory, live pricing and margin calculator, a Settings tab showing the live Stripe plan price, a partner-cafe management drawer (coordinates, cover photo, gallery, vibe tags, perk line), redemption audit trail with voiding modal, and monthly payout batches.
+  - **☕ Cafe Staff / Baristas**: Locked strictly to their assigned counter station, 4-digit station PIN security, real camera-based QR scanning (auto-detects and redeems), manual backup code entry as a fallback, scan verification (Success / Expired / Already used / Wrong cafe), today's live redemption log, and monthly cafe earnings summary.
 
 ### 3. ⚙️ Central Backend API (`social-cup-backend`)
-- **Built with**: Node.js, Express, TypeScript, Prisma, PostgreSQL.
+- **Built with**: Node.js, Express, TypeScript, Prisma, PostgreSQL, Stripe.
 - **Features**:
-  - Modular REST endpoints for authentication, cafe catalog, redemption code generation & double-spend protection, barista scan verification, and admin financial reports.
+  - Modular REST endpoints for authentication (email/Google/Apple), cafe catalog with distance-based sorting, redemption code generation & double-spend-safe scan verification, Stripe billing + webhooks, and admin financial reports.
   - Complete PostgreSQL schema (`User`, `Cafe`, `Drink`, `Redemption`, `Payout`, `Review`).
+
+> Not yet built: native on-device testing of Stripe/Google Sign-In (blocked on a native Android build issue, unrelated to either feature), email verification & password reset, AWS S3/CloudFront photo storage, and everything under the PRD's Phase 2 (cafe self-service portal, push notifications, connections/meetup features, etc).
 
 ---
 
@@ -47,24 +50,36 @@ Social Cup/
 ### Prerequisites
 - Node.js >= 18
 - npm or yarn
+- A local PostgreSQL instance
+- A free [Stripe](https://stripe.com) account (test mode) if you want billing to work
+- The [Stripe CLI](https://docs.stripe.com/stripe-cli) if you want to receive webhooks locally
 
-### 1. Mobile App
+### 1. Backend API
+```bash
+cd social-cup-backend
+npm install
+cp .env.example .env   # fill in DATABASE_URL, JWT_SECRET, Stripe keys, OAuth client IDs
+npx prisma migrate deploy
+npm run seed
+npm run dev
+```
+To receive Stripe webhooks locally, in a second terminal run:
+```bash
+stripe listen --forward-to localhost:4000/api/webhooks/stripe --print-secret
+```
+and put the printed `whsec_...` into `STRIPE_WEBHOOK_SECRET` in `.env`.
+
+### 2. Mobile App
 ```bash
 cd social-cup-mobile
 npm install
-npm run start # or npm run web
+npm run web   # see note below on native-only features
 ```
+> Google Sign-In works today via `npm run web` (a web OAuth client). Native iOS/Android Google Sign-In and Stripe's PaymentSheet are native-only and need a custom dev build (`npx expo run:android` / `run:ios`), not Expo Go — `npm run web` is the fastest path for everything else.
 
-### 2. Business Web Portal
+### 3. Business Web Portal
 ```bash
 cd social-cup-portal
 npm install
 npm run dev
-```
-
-### 3. Backend API
-```bash
-cd social-cup-backend
-npm install
-npm start
 ```
