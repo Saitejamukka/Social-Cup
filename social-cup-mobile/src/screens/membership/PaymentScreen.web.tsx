@@ -4,6 +4,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Payment'>;
 
@@ -16,12 +17,12 @@ export const PaymentScreen: React.FC<Props> = ({ navigation }) => (
       <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
         <Text style={styles.backBtnText}>←</Text>
       </TouchableOpacity>
-      <View style={styles.centerBox}>
+      <FadeSlideIn style={styles.centerBox}>
         <Text style={styles.title}>Payment isn't available in the web preview</Text>
         <Text style={styles.subtitle}>
           Stripe's payment sheet only runs in the native Android or iOS app. Open Social Cup on a device or emulator to subscribe.
         </Text>
-      </View>
+      </FadeSlideIn>
     </View>
   </SafeAreaView>
 );

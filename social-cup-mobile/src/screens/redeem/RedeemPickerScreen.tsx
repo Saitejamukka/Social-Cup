@@ -15,6 +15,8 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { api, ApiCafe } from '../../api/client';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RedeemPicker'>;
 
@@ -51,45 +53,46 @@ export const RedeemPickerScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.backBtnText}>←</Text>
         </TouchableOpacity>
 
-        <View style={styles.header}>
+        <FadeSlideIn style={styles.header}>
           <Text style={styles.title}>Redeem at {cafe.name}</Text>
           <Text style={styles.balance}>Your balance: {credits} credits</Text>
-        </View>
+        </FadeSlideIn>
 
         <ScrollView contentContainerStyle={styles.list}>
-          {cafe.drinks.map((drink) => {
+          {cafe.drinks.map((drink, i) => {
             const canAfford = credits >= drink.creditsCost;
             return (
-              <TouchableOpacity
-                key={drink.id}
-                style={[styles.drinkCard, !canAfford && styles.drinkCardDisabled]}
-                onPress={() => canAfford && handlePickDrink(drink.id)}
-                disabled={!canAfford}
-              >
-                {drink.image ? (
-                  <Image
-                    source={{ uri: drink.image }}
-                    style={styles.drinkThumb}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={styles.drinkThumb}>
-                    <Text style={styles.drinkThumbText}>☕</Text>
-                  </View>
-                )}
-
-                <View style={styles.drinkDetails}>
-                  <Text style={styles.drinkName}>{drink.name}</Text>
-                  <Text style={styles.drinkType}>{drink.category}</Text>
-                </View>
-
-                <View style={styles.costCol}>
-                  <Text style={styles.creditCost}>{drink.creditsCost} cr</Text>
-                  {!canAfford && (
-                    <Text style={styles.notEnough}>Not enough</Text>
+              <FadeSlideIn key={drink.id} delay={80 + i * 50}>
+                <AnimatedPressable
+                  style={[styles.drinkCard, !canAfford && styles.drinkCardDisabled]}
+                  onPress={() => canAfford && handlePickDrink(drink.id)}
+                  disabled={!canAfford}
+                >
+                  {drink.image ? (
+                    <Image
+                      source={{ uri: drink.image }}
+                      style={styles.drinkThumb}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={styles.drinkThumb}>
+                      <Text style={styles.drinkThumbText}>☕</Text>
+                    </View>
                   )}
-                </View>
-              </TouchableOpacity>
+
+                  <View style={styles.drinkDetails}>
+                    <Text style={styles.drinkName}>{drink.name}</Text>
+                    <Text style={styles.drinkType}>{drink.category}</Text>
+                  </View>
+
+                  <View style={styles.costCol}>
+                    <Text style={styles.creditCost}>{drink.creditsCost} cr</Text>
+                    {!canAfford && (
+                      <Text style={styles.notEnough}>Not enough</Text>
+                    )}
+                  </View>
+                </AnimatedPressable>
+              </FadeSlideIn>
             );
           })}
         </ScrollView>

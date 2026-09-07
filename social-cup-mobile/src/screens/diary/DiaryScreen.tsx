@@ -15,6 +15,8 @@ import { RootStackParamList, TabParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'DiaryTab'>,
@@ -31,17 +33,17 @@ export const DiaryScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <View style={styles.header}>
+        <FadeSlideIn style={styles.header}>
           <Text style={styles.title}>Your Drink Diary</Text>
           <Text style={styles.count}>
             {diary.length} drink{diary.length === 1 ? '' : 's'} rated
           </Text>
-        </View>
+        </FadeSlideIn>
 
         {diaryLoading && diary.length === 0 ? (
           <ActivityIndicator style={{ marginTop: 40 }} color={Colors.gold} />
         ) : diary.length === 0 ? (
-          <View style={styles.emptyState}>
+          <FadeSlideIn delay={80} style={styles.emptyState}>
             <View style={styles.emptyCircle}>
               <Text style={styles.emptyIcon}>☕</Text>
             </View>
@@ -49,38 +51,38 @@ export const DiaryScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.emptySub}>
               Rate a drink to start your personal coffee diary.
             </Text>
-            <TouchableOpacity
+            <AnimatedPressable
               style={styles.exploreBtn}
               onPress={() => navigation.navigate('DiscoverTab')}
             >
               <Text style={styles.exploreBtnText}>Explore cafes</Text>
-            </TouchableOpacity>
-          </View>
+            </AnimatedPressable>
+          </FadeSlideIn>
         ) : (
           <ScrollView contentContainerStyle={styles.list}>
-            {diary.map((entry) => {
+            {diary.map((entry, i) => {
               const starsText = '★'.repeat(entry.stars) + '☆'.repeat(5 - entry.stars);
 
               return (
-                <TouchableOpacity
-                  key={entry.id}
-                  style={styles.entryCard}
-                  onPress={() => openRateModal(entry.cafeId, entry.drinkId, entry.stars, entry.note ?? undefined)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.drinkThumb}>
-                    <Text style={styles.drinkThumbText}>☕</Text>
-                  </View>
+                <FadeSlideIn key={entry.id} delay={Math.min(i * 50, 300)}>
+                  <AnimatedPressable
+                    style={styles.entryCard}
+                    onPress={() => openRateModal(entry.cafeId, entry.drinkId, entry.stars, entry.note ?? undefined)}
+                  >
+                    <View style={styles.drinkThumb}>
+                      <Text style={styles.drinkThumbText}>☕</Text>
+                    </View>
 
-                  <View style={styles.entryContent}>
-                    <Text style={styles.drinkName}>{entry.drinkName}</Text>
-                    <Text style={styles.meta}>
-                      {entry.cafeName} · {new Date(entry.date).toLocaleDateString()}
-                    </Text>
-                    <Text style={styles.stars}>{starsText}</Text>
-                    {entry.note ? <Text style={styles.note}>"{entry.note}"</Text> : null}
-                  </View>
-                </TouchableOpacity>
+                    <View style={styles.entryContent}>
+                      <Text style={styles.drinkName}>{entry.drinkName}</Text>
+                      <Text style={styles.meta}>
+                        {entry.cafeName} · {new Date(entry.date).toLocaleDateString()}
+                      </Text>
+                      <Text style={styles.stars}>{starsText}</Text>
+                      {entry.note ? <Text style={styles.note}>"{entry.note}"</Text> : null}
+                    </View>
+                  </AnimatedPressable>
+                </FadeSlideIn>
               );
             })}
           </ScrollView>

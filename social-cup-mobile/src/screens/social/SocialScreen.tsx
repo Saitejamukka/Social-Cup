@@ -13,6 +13,8 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { CAFES, CONNECTIONS, INITIAL_ACTIVITY } from '../../data/mockData';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Social'>;
 
@@ -101,8 +103,8 @@ export const SocialScreen: React.FC<Props> = ({ navigation }) => {
           {/* TAB 1: ACTIVITY */}
           {activeTab === 'activity' && (
             <View style={styles.activityList}>
-              {INITIAL_ACTIVITY.map((item) => (
-                <View key={item.id} style={styles.activityCard}>
+              {INITIAL_ACTIVITY.map((item, i) => (
+                <FadeSlideIn key={item.id} delay={i * 50} style={styles.activityCard}>
                   <View style={styles.avatarMini}>
                     <Text style={styles.avatarGlyph}>👤</Text>
                   </View>
@@ -112,7 +114,7 @@ export const SocialScreen: React.FC<Props> = ({ navigation }) => {
                     </Text>
                     <Text style={styles.activityTime}>{item.when}</Text>
                   </View>
-                </View>
+                </FadeSlideIn>
               ))}
             </View>
           )}
@@ -125,8 +127,8 @@ export const SocialScreen: React.FC<Props> = ({ navigation }) => {
                   No saved cafes yet. Save one from Explore.
                 </Text>
               ) : (
-                savedCafes.map((cafe) => (
-                  <View key={cafe.id} style={styles.savedCard}>
+                savedCafes.map((cafe, i) => (
+                  <FadeSlideIn key={cafe.id} delay={i * 50} style={styles.savedCard}>
                     <View style={styles.cafeThumb}>
                       <Text style={styles.cafeThumbText}>☕</Text>
                     </View>
@@ -137,7 +139,7 @@ export const SocialScreen: React.FC<Props> = ({ navigation }) => {
                         2 connections have been here
                       </Text>
                     </View>
-                  </View>
+                  </FadeSlideIn>
                 ))
               )}
             </View>
@@ -145,7 +147,7 @@ export const SocialScreen: React.FC<Props> = ({ navigation }) => {
 
           {/* TAB 3: MEETUP */}
           {activeTab === 'meetup' && (
-            <View style={styles.meetupContainer}>
+            <FadeSlideIn style={styles.meetupContainer}>
               <Text style={styles.meetupDesc}>
                 Invite connections and we'll suggest a midpoint cafe.
               </Text>
@@ -196,13 +198,13 @@ export const SocialScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
               )}
 
-              <TouchableOpacity
+              <AnimatedPressable
                 style={styles.inviteBtn}
                 onPress={sendMeetupInvite}
               >
                 <Text style={styles.inviteBtnText}>Send invite</Text>
-              </TouchableOpacity>
-            </View>
+              </AnimatedPressable>
+            </FadeSlideIn>
           )}
         </ScrollView>
       </View>

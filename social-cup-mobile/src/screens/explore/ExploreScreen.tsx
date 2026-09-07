@@ -18,6 +18,7 @@ import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { NEIGHBORHOODS } from '../../data/mockData';
 import { CafeCard } from '../../components/CafeCard';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'ExploreTab'>,
@@ -58,7 +59,9 @@ export const ExploreScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Text style={styles.title}>Explore</Text>
+        <FadeSlideIn>
+          <Text style={styles.title}>Explore</Text>
+        </FadeSlideIn>
 
         {/* Search Input */}
         <View style={styles.searchBar}>
@@ -144,13 +147,14 @@ export const ExploreScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           ) : (
             <View style={styles.cardList}>
-              {filtered.map((cafe) => (
-                <CafeCard
-                  key={cafe.id}
-                  cafe={cafe}
-                  onPress={() => handleSelectCafe(cafe.id)}
-                  showSaveButton
-                />
+              {filtered.map((cafe, i) => (
+                <FadeSlideIn key={cafe.id} delay={Math.min(i * 40, 240)}>
+                  <CafeCard
+                    cafe={cafe}
+                    onPress={() => handleSelectCafe(cafe.id)}
+                    showSaveButton
+                  />
+                </FadeSlideIn>
               ))}
             </View>
           )}

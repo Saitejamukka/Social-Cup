@@ -15,6 +15,8 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { NEIGHBORHOODS, PREF_OPTIONS } from '../../data/mockData';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Onboarding'>;
 
@@ -104,7 +106,7 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
         <ScrollView contentContainerStyle={styles.content}>
           {/* STEP 0: Coffee Preferences */}
           {step === 0 && (
-            <View style={styles.stepContainer}>
+            <FadeSlideIn key="step-0" style={styles.stepContainer}>
               <View style={styles.header}>
                 <Text style={styles.title}>Coffee preferences</Text>
                 <Text style={styles.subtitle}>
@@ -126,12 +128,12 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
                   );
                 })}
               </View>
-            </View>
+            </FadeSlideIn>
           )}
 
           {/* STEP 1: Home Neighbourhood */}
           {step === 1 && (
-            <View style={styles.stepContainer}>
+            <FadeSlideIn key="step-1" style={styles.stepContainer}>
               <View style={styles.header}>
                 <Text style={styles.title}>Your home neighbourhood</Text>
                 <Text style={styles.subtitle}>
@@ -154,12 +156,12 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
                   );
                 })}
               </View>
-            </View>
+            </FadeSlideIn>
           )}
 
           {/* STEP 2: Location */}
           {step === 2 && (
-            <View style={[styles.stepContainer, styles.centerStep]}>
+            <FadeSlideIn key="step-2" style={[styles.stepContainer, styles.centerStep]}>
               <View style={styles.locationIcon}>
                 <Text style={styles.locationGlyph}>◎</Text>
               </View>
@@ -177,7 +179,7 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
               )}
 
               <View style={styles.locationActions}>
-                <TouchableOpacity
+                <AnimatedPressable
                   style={styles.primaryBtn}
                   onPress={handleAllowLocation}
                   disabled={finishing || requestingLocation}
@@ -187,22 +189,22 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
                   ) : (
                     <Text style={styles.primaryBtnText}>Allow location</Text>
                   )}
-                </TouchableOpacity>
+                </AnimatedPressable>
 
                 <TouchableOpacity style={styles.secondaryBtn} onPress={() => setLocationAllowed(false)}>
                   <Text style={styles.secondaryBtnText}>Not now</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </FadeSlideIn>
           )}
         </ScrollView>
 
         {/* Bottom Continue Button for Steps 0-1, or after declining location */}
         {(step < 2 || locationAllowed === false) && (
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.primaryBtn} onPress={handleNext} disabled={finishing}>
+            <AnimatedPressable style={styles.primaryBtn} onPress={handleNext} disabled={finishing}>
               {finishing ? <ActivityIndicator color={Colors.ink} /> : <Text style={styles.primaryBtnText}>Continue</Text>}
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
         )}
       </View>

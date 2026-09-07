@@ -11,6 +11,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Membership'>;
 
@@ -32,30 +34,30 @@ export const MembershipScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.backBtnText}>←</Text>
         </TouchableOpacity>
 
-        <View style={styles.header}>
+        <FadeSlideIn style={styles.header}>
           <Text style={styles.title}>Social Cup Membership</Text>
           <View style={styles.priceRow}>
             <Text style={styles.price}>$24.99</Text>
             <Text style={styles.priceUnit}>/ month</Text>
           </View>
-        </View>
+        </FadeSlideIn>
 
         {/* Credit Card Banner */}
-        <View style={styles.creditsBanner}>
+        <FadeSlideIn delay={80} style={styles.creditsBanner}>
           <Text style={styles.creditNumber}>30</Text>
           <Text style={styles.creditDesc}>
             drink credits every month — 1 credit ≈ $1 toward any drink at any
             partner cafe.
           </Text>
-        </View>
+        </FadeSlideIn>
 
         {/* Benefits List */}
         <View style={styles.benefitsList}>
           {BENEFITS.map((benefit, index) => (
-            <View key={index} style={styles.benefitRow}>
+            <FadeSlideIn key={index} delay={140 + index * 50} style={styles.benefitRow}>
               <Text style={styles.checkIcon}>✓</Text>
               <Text style={styles.benefitText}>{benefit}</Text>
-            </View>
+            </FadeSlideIn>
           ))}
         </View>
 
@@ -64,12 +66,12 @@ export const MembershipScreen: React.FC<Props> = ({ navigation }) => {
           continues to the end of your paid period.
         </Text>
 
-        <TouchableOpacity
+        <AnimatedPressable
           style={styles.subscribeBtn}
           onPress={() => navigation.navigate('Payment')}
         >
           <Text style={styles.subscribeBtnText}>Subscribe — $24.99/mo</Text>
-        </TouchableOpacity>
+        </AnimatedPressable>
       </ScrollView>
     </SafeAreaView>
   );

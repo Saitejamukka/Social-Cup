@@ -14,6 +14,8 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { api, ApiCafe } from '../../api/client';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RedeemConfirm'>;
 
@@ -66,7 +68,7 @@ export const RedeemConfirmScreen: React.FC<Props> = ({ route, navigation }) => {
         <Text style={styles.title}>Confirm redemption</Text>
 
         {/* Selected Drink Summary Card */}
-        <View style={styles.drinkCard}>
+        <FadeSlideIn style={styles.drinkCard}>
           {drink.image ? (
             <Image
               source={{ uri: drink.image }}
@@ -82,10 +84,10 @@ export const RedeemConfirmScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.drinkName}>{drink.name}</Text>
             <Text style={styles.cafeName}>{cafe.name}</Text>
           </View>
-        </View>
+        </FadeSlideIn>
 
         {/* Cost Breakdown */}
-        <View style={styles.breakdownCard}>
+        <FadeSlideIn delay={80} style={styles.breakdownCard}>
           <View style={styles.breakdownRow}>
             <Text style={styles.label}>Credit cost</Text>
             <Text style={styles.valueBold}>{drink.creditsCost} credits</Text>
@@ -102,7 +104,7 @@ export const RedeemConfirmScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.label}>Balance after</Text>
             <Text style={styles.balanceAfterText}>{balanceAfter} credits</Text>
           </View>
-        </View>
+        </FadeSlideIn>
 
         <Text style={styles.validityNotice}>
           Your code will be valid for 5 minutes once generated. Credits are only deducted
@@ -111,13 +113,13 @@ export const RedeemConfirmScreen: React.FC<Props> = ({ route, navigation }) => {
 
         {error && <Text style={styles.errorText}>{error}</Text>}
 
-        <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} disabled={submitting}>
+        <AnimatedPressable style={styles.confirmBtn} onPress={handleConfirm} disabled={submitting}>
           {submitting ? (
             <ActivityIndicator color={Colors.ink} />
           ) : (
             <Text style={styles.confirmBtnText}>Confirm & generate code</Text>
           )}
-        </TouchableOpacity>
+        </AnimatedPressable>
       </View>
     </SafeAreaView>
   );

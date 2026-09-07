@@ -4,6 +4,9 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
+import { PopIn } from '../../components/PopIn';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VerifyEmail'>;
 
@@ -11,23 +14,23 @@ export const VerifyEmailScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <View style={styles.iconCircle}>
+        <PopIn style={styles.iconCircle}>
           <Text style={styles.iconText}>✉</Text>
-        </View>
+        </PopIn>
 
-        <View style={styles.textContainer}>
+        <FadeSlideIn delay={120} style={styles.textContainer}>
           <Text style={styles.title}>Check your email</Text>
           <Text style={styles.subtitle}>
             We sent a verification link to your inbox. Tap it to confirm your address.
           </Text>
-        </View>
+        </FadeSlideIn>
 
-        <TouchableOpacity
+        <AnimatedPressable
           style={styles.primaryBtn}
           onPress={() => navigation.navigate('Onboarding')}
         >
           <Text style={styles.primaryBtnText}>Continue</Text>
-        </TouchableOpacity>
+        </AnimatedPressable>
 
         <TouchableOpacity style={styles.resendBtn}>
           <Text style={styles.resendText}>Resend email</Text>

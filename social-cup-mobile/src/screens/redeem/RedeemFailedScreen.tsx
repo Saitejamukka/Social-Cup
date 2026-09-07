@@ -12,6 +12,9 @@ import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { FAIL_REASONS } from '../../data/mockData';
+import { PopIn } from '../../components/PopIn';
+import { FadeSlideIn } from '../../components/FadeSlideIn';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RedeemFailed'>;
 
@@ -22,19 +25,21 @@ export const RedeemFailedScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.iconCircle}>
+        <PopIn style={styles.iconCircle}>
           <Text style={styles.iconGlyph}>✕</Text>
-        </View>
+        </PopIn>
 
-        <Text style={styles.title}>{currentReason.title}</Text>
-        <Text style={styles.message}>{currentReason.message}</Text>
+        <FadeSlideIn delay={120} style={{ alignItems: 'center', gap: 16 }}>
+          <Text style={styles.title}>{currentReason.title}</Text>
+          <Text style={styles.message}>{currentReason.message}</Text>
 
-        <TouchableOpacity
-          style={styles.retryBtn}
-          onPress={() => navigation.navigate('CafeDetail', { cafeId })}
-        >
-          <Text style={styles.retryBtnText}>Try again</Text>
-        </TouchableOpacity>
+          <AnimatedPressable
+            style={styles.retryBtn}
+            onPress={() => navigation.navigate('CafeDetail', { cafeId })}
+          >
+            <Text style={styles.retryBtnText}>Try again</Text>
+          </AnimatedPressable>
+        </FadeSlideIn>
       </ScrollView>
     </SafeAreaView>
   );
