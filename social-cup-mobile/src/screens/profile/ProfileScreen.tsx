@@ -7,7 +7,6 @@ import {
   SafeAreaView,
   ScrollView,
   Switch,
-  Alert,
 } from 'react-native';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -15,6 +14,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, TabParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { useAppStore } from '../../store/useAppStore';
+import { showAlert } from '../../utils/alert';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'ProfileTab'>,
@@ -56,7 +56,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleCancelMembership = () => {
-    Alert.alert(
+    showAlert(
       'Cancel membership?',
       'Your card is managed by Stripe in production; this build cancels immediately rather than at the end of the paid period.',
       [
@@ -67,7 +67,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
+    showAlert(
       'Delete your account?',
       'This cancels any active membership and cannot be undone.',
       [

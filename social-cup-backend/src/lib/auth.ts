@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import jwksClient from 'jwks-rsa';
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from './prisma.js';
 
@@ -23,6 +24,111 @@ export function verifyPassword(password: string, hash: string): Promise<boolean>
 
 export function signUserToken(payload: UserTokenPayload): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
+}
+
+// ---- OAuth (Google / Apple) sign-up / sign-in ----
+// Both providers hand the client a signed JWT ("ID token" for Google, "identity
+// token" for Apple) instead of a raw credential, so the server verifies it against
+// the provider's public JWKS rather than trusting whatever the client claims.
+
+export type OAuthProvider = 'google' | 'apple';
+
+export interface OAuthIdentity {
+  sub: string;
+  email: string | null;
+  emailVerified: boolean;
+  name: string | null;
+}
+
+const PROVIDER_CONFIG: Record<
+  OAuthProvider,
+  { issuers: string[]; jwksUri: string; audiences: string[] }
+> = {
+  google: {
+    issuers: ['https://accounts.google.com', 'accounts.google.com'],
+    jwksUri: 'https://www.googleapis.com/oauth2/v3/certs',
+    audiences: (process.env.GOOGLE_CLIENT_IDS || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+  },
+  apple: {
+    issuers: ['https://appleid.apple.com'],
+    jwksUri: 'https://appleid.apple.com/auth/keys',
+    audiences: (process.env.APPLE_CLIENT_IDS || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+  },
+};
+
+const jwksClients: Record<OAuthProvider, jwksClient.JwksClient> = {
+  google: jwksClient({ jwksUri: PROVIDER_CONFIG.google.jwksUri, cache: true, rateLimit: true }),
+  apple: jwksClient({ jwksUri: PROVIDER_CONFIG.apple.jwksUri, cache: true, rateLimit: true }),
+};
+
+function getSigningKey(provider: OAuthProvider, kid: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    jwksClients[provider].getSigningKey(kid, (err, key) => {
+      if (err || !key) return reject(err || new Error('Signing key not found'));
+      resolve(key.getPublicKey());
+    });
+  });
+}
+
+export class OAuthVerificationError extends Error {}
+
+/** Verifies a Google ID token or Apple identity token and returns the caller's identity. */
+export async function verifyOAuthIdToken(provider: OAuthProvider, idToken: string): Promise<OAuthIdentity> {
+  if (typeof idToken !== 'string' || !idToken) {
+    throw new OAuthVerificationError('Missing ID token');
+  }
+
+  const config = PROVIDER_CONFIG[provider];
+  if (config.audiences.length === 0) {
+    throw new OAuthVerificationError(`${provider} sign-in is not configured on this server`);
+  }
+
+  const decoded = jwt.decode(idToken, { complete: true });
+  if (!decoded || typeof decoded === 'string' || !decoded.header.kid) {
+    throw new OAuthVerificationError('Malformed ID token');
+  }
+
+  let signingKey: string;
+  try {
+    signingKey = await getSigningKey(provider, decoded.header.kid);
+  } catch {
+    throw new OAuthVerificationError('Could not resolve token signing key');
+  }
+
+  let payload: jwt.JwtPayload;
+  try {
+    payload = jwt.verify(idToken, signingKey, {
+      algorithms: ['RS256'],
+      issuer: config.issuers as [string, ...string[]],
+      audience: config.audiences as [string, ...string[]],
+    }) as jwt.JwtPayload;
+  } catch {
+    throw new OAuthVerificationError('Invalid or expired ID token');
+  }
+
+  if (!payload.sub) {
+    throw new OAuthVerificationError('ID token missing subject claim');
+  }
+
+  return {
+    sub: payload.sub,
+    email: typeof payload.email === 'string' ? payload.email.toLowerCase() : null,
+    emailVerified: payload.email_verified === true || payload.email_verified === 'true',
+    name: typeof payload.name === 'string' ? payload.name : null,
+  };
+}
+
+export function providerLabel(provider: OAuthProvider | 'EMAIL' | 'GOOGLE' | 'APPLE'): string {
+  const key = provider.toString().toLowerCase();
+  if (key === 'google') return 'Google';
+  if (key === 'apple') return 'Apple';
+  return 'email and password';
 }
 
 export interface AuthedRequest extends Request {

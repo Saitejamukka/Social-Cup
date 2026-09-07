@@ -4,7 +4,10 @@ import { Platform } from 'react-native';
 // Android emulators can't reach the host machine via localhost — 10.0.2.2 is the
 // documented loopback alias. iOS simulator and web both resolve localhost fine.
 const DEFAULT_API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:4000' : 'http://localhost:4000';
-const API_URL = process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL;
+// EXPO_PUBLIC_API_URL (a LAN IP) only applies to a physical device on the same
+// Wi-Fi — it goes stale whenever the dev machine changes networks. A web build
+// runs in a browser on this same machine, so it always uses localhost instead.
+const API_URL = (Platform.OS !== 'web' && process.env.EXPO_PUBLIC_API_URL) || DEFAULT_API_URL;
 
 const TOKEN_KEY = 'sc_token';
 let cachedToken: string | null | undefined;
@@ -22,7 +25,16 @@ export async function setToken(token: string | null) {
   else await AsyncStorage.removeItem(TOKEN_KEY);
 }
 
-export class ApiError extends Error {}
+export class ApiError extends Error {
+  code?: string;
+  authProvider?: AuthProvider;
+
+  constructor(message: string, code?: string, authProvider?: AuthProvider) {
+    super(message);
+    this.code = code;
+    this.authProvider = authProvider;
+  }
+}
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await getToken();
@@ -37,10 +49,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const body = contentType.includes('application/json') ? await res.json() : null;
 
   if (!res.ok) {
-    throw new ApiError((body && body.error) || `Request failed (${res.status})`);
+    throw new ApiError((body && body.error) || `Request failed (${res.status})`, body?.code, body?.authProvider);
   }
   return body as T;
 }
+
+export type AuthProvider = 'EMAIL' | 'GOOGLE' | 'APPLE';
 
 export interface ApiUser {
   id: string;
@@ -51,6 +65,7 @@ export interface ApiUser {
   credits: number;
   neighborhood: string | null;
   preferences: string[];
+  authProvider: AuthProvider;
 }
 
 export interface ApiDrink {
@@ -121,6 +136,24 @@ export const api = {
     const r = await request<{ token: string; user: ApiUser }>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
+    });
+    await setToken(r.token);
+    return r.user;
+  },
+
+  async oauthSignup(provider: 'google' | 'apple', idToken: string, name?: string) {
+    const r = await request<{ token: string; user: ApiUser }>(`/api/auth/oauth/${provider}/signup`, {
+      method: 'POST',
+      body: JSON.stringify({ idToken, name }),
+    });
+    await setToken(r.token);
+    return r.user;
+  },
+
+  async oauthSignin(provider: 'google' | 'apple', idToken: string) {
+    const r = await request<{ token: string; user: ApiUser }>(`/api/auth/oauth/${provider}/signin`, {
+      method: 'POST',
+      body: JSON.stringify({ idToken }),
     });
     await setToken(r.token);
     return r.user;

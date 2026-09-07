@@ -7,18 +7,26 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { useAppStore } from '../../store/useAppStore';
+import { ApiError } from '../../api/client';
+import { useGoogleAuthRequest, extractGoogleIdToken } from '../../auth/googleAuth';
+import { GoogleIcon } from '../../components/GoogleIcon';
+import { AppleIcon } from '../../components/AppleIcon';
+import { showAlert } from '../../utils/alert';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Signup'>;
 
-const notAvailable = () =>
-  Alert.alert('Not available yet', 'Google and Apple sign-in are not set up in this build — please use email and password.');
+// Apple Sign-In is fully implemented in src/auth/appleAuth.ts but stays disabled
+// here until the account holds a paid Apple Developer Program membership
+// (required for the "Sign in with Apple" entitlement) — wire handleAppleSignup
+// back to that module's signInWithApple() once that's in place.
+const appleComingSoon = () =>
+  showAlert('Coming soon', 'Apple sign-in is being set up and will be available shortly.');
 
 export const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const [name, setName] = useState('');
@@ -27,6 +35,37 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const register = useAppStore((s) => s.register);
+  const registerWithOAuth = useAppStore((s) => s.registerWithOAuth);
+  const { request: googleRequest, promptAsync: promptGoogleAsync, isConfigured: googleConfigured } = useGoogleAuthRequest();
+
+  const finishOAuthSignup = async (provider: 'google' | 'apple', idToken: string, providerName?: string) => {
+    setError(null);
+    setSubmitting(true);
+    try {
+      await registerWithOAuth(provider, idToken, providerName);
+      // Email is already verified by the provider, so OAuth sign-ups skip VerifyEmail.
+      navigation.navigate('Onboarding');
+    } catch (err: any) {
+      setError(err instanceof ApiError ? err.message : err.message || 'Could not create your account');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    if (!googleConfigured) {
+      showAlert('Not available yet', 'Google sign-in is not configured in this build.');
+      return;
+    }
+    const result = await promptGoogleAsync();
+    if (result.type === 'dismiss' || result.type === 'cancel') return;
+    const idToken = extractGoogleIdToken(result);
+    if (!idToken) {
+      setError('Google sign-in did not complete. Please try again.');
+      return;
+    }
+    await finishOAuthSignup('google', idToken);
+  };
 
   const handleSubmit = async () => {
     if (!name.trim() || !email.trim() || password.length < 8) {
@@ -64,13 +103,13 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* Social Buttons */}
         <View style={styles.socialGroup}>
-          <TouchableOpacity style={styles.googleBtn} onPress={notAvailable}>
-            <View style={styles.socialDot} />
+          <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleSignup} disabled={submitting || !googleRequest}>
+            <GoogleIcon />
             <Text style={styles.googleBtnText}>Continue with Google</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.appleBtn} onPress={notAvailable}>
-            <View style={[styles.socialDot, { backgroundColor: Colors.white }]} />
+          <TouchableOpacity style={styles.appleBtn} onPress={appleComingSoon}>
+            <AppleIcon />
             <Text style={styles.appleBtnText}>Continue with Apple</Text>
           </TouchableOpacity>
         </View>
@@ -202,12 +241,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: Colors.white,
-  },
-  socialDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: Colors.line,
   },
   dividerRow: {
     flexDirection: 'row',

@@ -9,6 +9,8 @@ interface AppState {
   bootstrapAuth: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
+  loginWithOAuth: (provider: 'google' | 'apple', idToken: string) => Promise<void>;
+  registerWithOAuth: (provider: 'google' | 'apple', idToken: string, name?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateProfile: (data: { name?: string; neighborhood?: string; preferences?: string[] }) => Promise<void>;
@@ -107,6 +109,28 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ authError: null });
     try {
       const user = await api.register(email, password, name);
+      set({ user });
+    } catch (err: any) {
+      set({ authError: err.message || 'Sign up failed' });
+      throw err;
+    }
+  },
+
+  loginWithOAuth: async (provider, idToken) => {
+    set({ authError: null });
+    try {
+      const user = await api.oauthSignin(provider, idToken);
+      set({ user });
+    } catch (err: any) {
+      set({ authError: err.message || 'Sign in failed' });
+      throw err;
+    }
+  },
+
+  registerWithOAuth: async (provider, idToken, name) => {
+    set({ authError: null });
+    try {
+      const user = await api.oauthSignup(provider, idToken, name);
       set({ user });
     } catch (err: any) {
       set({ authError: err.message || 'Sign up failed' });

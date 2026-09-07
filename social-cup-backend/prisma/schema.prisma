@@ -34,13 +34,26 @@ enum PayoutStatus {
   PAID
 }
 
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+  APPLE
+}
+
 model User {
   id            String         @id @default(uuid())
   email         String         @unique
-  passwordHash  String
+  // Only set for EMAIL-provider accounts; OAuth signups never receive one.
+  passwordHash  String?
   name          String
   role          Role           @default(CUSTOMER)
   accountStatus AccountStatus  @default(VISITOR)
+  // The method this account was created with. Sign-in is locked to this provider —
+  // see /api/auth/oauth/:provider/signin — so an account can't be hijacked by
+  // signing in through a different provider that happens to share the same email.
+  authProvider  AuthProvider   @default(EMAIL)
+  // The provider's stable subject id (Google/Apple `sub` claim). Null for EMAIL accounts.
+  providerUserId String?
   // 1 credit = $1. Members get 30/month per the plan; resets on renewal, never rolls over.
   credits       Int            @default(0)
   neighborhood  String?        @default("Bishop Arts")
@@ -51,6 +64,8 @@ model User {
   redemptions   Redemption[]
   reviews       Review[]
   voidedRedemptions Redemption[] @relation("VoidedBy")
+
+  @@unique([authProvider, providerUserId])
 }
 
 model Cafe {

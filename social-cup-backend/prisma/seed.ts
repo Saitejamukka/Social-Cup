@@ -51,6 +51,7 @@ async function main() {
       role: 'ADMIN',
       accountStatus: 'MEMBER',
       credits: 0,
+      authProvider: 'EMAIL',
     },
     update: {},
   });
@@ -67,6 +68,7 @@ async function main() {
       credits: 22,
       neighborhood: 'Bishop Arts',
       preferences: ['Specialty brew', 'Cold brew'],
+      authProvider: 'EMAIL',
     },
     update: {},
   });

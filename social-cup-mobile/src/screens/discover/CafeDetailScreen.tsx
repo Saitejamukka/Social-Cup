@@ -9,7 +9,6 @@ import {
   Image,
   Dimensions,
   ActivityIndicator,
-  Alert,
   Linking,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -17,6 +16,7 @@ import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { useAppStore } from '../../store/useAppStore';
 import { api, ApiCafe } from '../../api/client';
+import { showAlert } from '../../utils/alert';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -56,7 +56,7 @@ export const CafeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const openDirections = () => {
     const query = encodeURIComponent(cafe.address);
     Linking.openURL(`https://maps.google.com/?q=${query}`).catch(() =>
-      Alert.alert('Could not open maps', 'No map application is available on this device.')
+      showAlert('Could not open maps', 'No map application is available on this device.')
     );
   };
 
