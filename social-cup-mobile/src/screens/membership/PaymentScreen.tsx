@@ -1,140 +1,119 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  ActivityIndicator,
-} from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
+import { useStripe } from '@stripe/stripe-react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { useAppStore } from '../../store/useAppStore';
+import { StripeSubscribeParams } from '../../api/client';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Payment'>;
 
 export const PaymentScreen: React.FC<Props> = ({ navigation }) => {
-  const [stage, setStage] = useState<'form' | 'processing' | 'success'>('form');
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvc, setCvc] = useState('');
+  const [stage, setStage] = useState<'loading' | 'ready' | 'processing' | 'success'>('loading');
   const [error, setError] = useState<string | null>(null);
-  const subscribe = useAppStore((s) => s.subscribe);
+  const startSubscription = useAppStore((s) => s.startSubscription);
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  // initPaymentSheet must run exactly once per fetched PaymentIntent — re-running it
+  // (e.g. from a StrictMode double-render) against an already-initialized sheet errors.
+  const initialized = useRef(false);
 
-  // Stripe's native payment sheet (Apple Pay / Google Pay / card) is not wired up in
-  // this environment — see project notes. This calls the same backend endpoint a
-  // verified Stripe webhook would call once a real subscription payment succeeds.
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
+    (async () => {
+      try {
+        const result = await startSubscription();
+        if ('reactivated' in result) {
+          setStage('success');
+          return;
+        }
+
+        const params = result as StripeSubscribeParams;
+        const { error: initError } = await initPaymentSheet({
+          merchantDisplayName: 'Social Cup',
+          customerId: params.customerId,
+          customerEphemeralKeySecret: params.ephemeralKeySecret,
+          paymentIntentClientSecret: params.paymentIntentClientSecret,
+          googlePay: {
+            merchantCountryCode: 'US',
+            testEnv: params.publishableKey.startsWith('pk_test_'),
+          },
+        });
+        if (initError) {
+          setError(initError.message);
+          return;
+        }
+        setStage('ready');
+      } catch (err: any) {
+        setError(err.message || 'Could not start checkout');
+      }
+    })();
+  }, []);
+
   const handlePay = async () => {
     setStage('processing');
     setError(null);
-    try {
-      await subscribe();
-      setStage('success');
-    } catch (err: any) {
-      setError(err.message || 'Payment could not be confirmed');
-      setStage('form');
+    const { error: presentError } = await presentPaymentSheet();
+    if (presentError) {
+      if (presentError.code !== 'Canceled') {
+        setError(presentError.message);
+      }
+      setStage('ready');
+      return;
     }
+    await useAppStore.getState().refreshUser();
+    setStage('success');
   };
 
   const handleFinish = () => {
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'MainTabs' }],
-    });
+    navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {stage !== 'success' && (
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation.goBack()}
-            disabled={stage === 'processing'}
-          >
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Text style={styles.backBtnText}>←</Text>
           </TouchableOpacity>
         )}
 
-        {/* STAGE 1: FORM */}
-        {stage === 'form' && (
+        {(stage === 'loading' || stage === 'ready' || stage === 'processing') && (
           <View style={styles.formContainer}>
-            <Text style={styles.title}>Payment</Text>
-
-            <View style={styles.walletGroup}>
-              <TouchableOpacity style={styles.applePayBtn} onPress={handlePay}>
-                <Text style={styles.applePayText}>Pay with Apple Pay</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.googlePayBtn} onPress={handlePay}>
-                <Text style={styles.googlePayText}>Pay with Google Pay</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or pay with card</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <View style={styles.inputsGroup}>
-              <TextInput
-                style={styles.input}
-                placeholder="Card number"
-                placeholderTextColor={Colors.pale}
-                value={cardNumber}
-                onChangeText={setCardNumber}
-                keyboardType="numeric"
-              />
-
-              <View style={styles.rowInputs}>
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  placeholder="MM / YY"
-                  placeholderTextColor={Colors.pale}
-                  value={expiry}
-                  onChangeText={setExpiry}
-                />
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  placeholder="CVC"
-                  placeholderTextColor={Colors.pale}
-                  value={cvc}
-                  onChangeText={setCvc}
-                  keyboardType="numeric"
-                  secureTextEntry
-                />
-              </View>
-            </View>
+            <Text style={styles.title}>Membership</Text>
+            <Text style={styles.subtitle}>$24.99/month · 30 drink credits</Text>
 
             {error && <Text style={styles.errorText}>{error}</Text>}
 
-            <TouchableOpacity style={styles.payBtn} onPress={handlePay}>
-              <Text style={styles.payBtnText}>Pay $24.99</Text>
-            </TouchableOpacity>
+            {stage === 'loading' ? (
+              <View style={styles.centerBox}>
+                <ActivityIndicator size="large" color={Colors.gold} />
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.payBtn}
+                onPress={handlePay}
+                disabled={stage === 'processing'}
+              >
+                {stage === 'processing' ? (
+                  <ActivityIndicator color={Colors.ink} />
+                ) : (
+                  <Text style={styles.payBtnText}>Subscribe — $24.99/month</Text>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
-        {/* STAGE 2: PROCESSING */}
-        {stage === 'processing' && (
-          <View style={styles.centerBox}>
-            <ActivityIndicator size="large" color={Colors.gold} />
-            <Text style={styles.processingText}>Confirming payment…</Text>
-          </View>
-        )}
-
-        {/* STAGE 3: SUCCESS */}
         {stage === 'success' && (
           <View style={styles.centerBox}>
             <View style={styles.successBadge}>
               <Text style={styles.successCheck}>✓</Text>
             </View>
             <Text style={styles.title}>You're a member!</Text>
-            <Text style={styles.successSub}>
-              30 drink credits have been added to your account.
-            </Text>
+            <Text style={styles.successSub}>30 drink credits have been added to your account.</Text>
 
             <TouchableOpacity style={styles.doneBtn} onPress={handleFinish}>
               <Text style={styles.doneBtnText}>Done</Text>
@@ -165,6 +144,7 @@ const styles = StyleSheet.create({
     color: Colors.ink,
   },
   formContainer: {
+    flex: 1,
     gap: 20,
     marginTop: 8,
   },
@@ -174,69 +154,16 @@ const styles = StyleSheet.create({
     color: Colors.ink,
     fontFamily: 'serif',
   },
-  walletGroup: {
-    gap: 10,
-  },
-  applePayBtn: {
-    backgroundColor: Colors.ink,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  applePayText: {
-    color: Colors.white,
+  subtitle: {
     fontSize: 14,
-    fontWeight: '600',
-  },
-  googlePayBtn: {
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  googlePayText: {
-    color: Colors.ink,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.line,
-  },
-  dividerText: {
-    fontSize: 12,
-    color: Colors.pale,
-  },
-  inputsGroup: {
-    gap: 12,
-  },
-  input: {
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    borderRadius: 10,
-    padding: 13,
-    fontSize: 14,
-    color: Colors.ink,
-  },
-  rowInputs: {
-    flexDirection: 'row',
-    gap: 10,
+    color: Colors.mute,
   },
   payBtn: {
     backgroundColor: Colors.gold,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 'auto',
   },
   payBtnText: {
     color: Colors.ink,
@@ -254,10 +181,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 16,
     padding: 32,
-  },
-  processingText: {
-    fontSize: 14,
-    color: Colors.mute,
   },
   successBadge: {
     width: 72,

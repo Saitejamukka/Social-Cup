@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api, ApiUser, ApiCafe, ApiDiaryEntry, ApiRedemption, getToken } from '../api/client';
+import { api, ApiUser, ApiCafe, ApiDiaryEntry, ApiRedemption, StripeSubscribeParams, getToken } from '../api/client';
 
 interface AppState {
   // ---- Auth / session (backed by the real API) ----
@@ -14,7 +14,9 @@ interface AppState {
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateProfile: (data: { name?: string; neighborhood?: string; preferences?: string[] }) => Promise<void>;
-  subscribe: () => Promise<void>;
+  // Kicks off a real Stripe subscription. Returns PaymentSheet params to present, or
+  // `{ reactivated: true }` if it just undid a pending cancellation with nothing to pay.
+  startSubscription: () => Promise<{ reactivated: true } | StripeSubscribeParams>;
   cancelMembership: () => Promise<void>;
   deleteAccount: () => Promise<void>;
 
@@ -153,14 +155,18 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ user });
   },
 
-  subscribe: async () => {
-    const user = await api.subscribe();
-    set({ user });
+  startSubscription: async () => {
+    const result = await api.startSubscription();
+    if ('reactivated' in result) {
+      await get().refreshUser();
+      return { reactivated: true as const };
+    }
+    return result;
   },
 
   cancelMembership: async () => {
-    const user = await api.cancelMembership();
-    set({ user });
+    await api.cancelMembership();
+    await get().refreshUser();
   },
 
   deleteAccount: async () => {

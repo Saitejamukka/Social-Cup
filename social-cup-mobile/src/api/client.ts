@@ -66,6 +66,15 @@ export interface ApiUser {
   neighborhood: string | null;
   preferences: string[];
   authProvider: AuthProvider;
+  subscriptionCancelAtPeriodEnd: boolean;
+  subscriptionCurrentPeriodEnd: string | null;
+}
+
+export interface StripeSubscribeParams {
+  paymentIntentClientSecret: string;
+  ephemeralKeySecret: string;
+  customerId: string;
+  publishableKey: string;
 }
 
 export interface ApiDrink {
@@ -168,9 +177,16 @@ export const api = {
   updateProfile: (data: { name?: string; neighborhood?: string; preferences?: string[] }) =>
     request<{ user: ApiUser }>('/api/auth/profile', { method: 'PATCH', body: JSON.stringify(data) }).then((r) => r.user),
 
-  subscribe: () => request<{ user: ApiUser }>('/api/auth/subscribe', { method: 'POST' }).then((r) => r.user),
+  // Starts a real Stripe subscription. Either returns PaymentSheet params to collect a
+  // card, or — if the caller had a pending cancellation on their existing subscription —
+  // just undoes that cancellation and reports `reactivated: true` with nothing to pay.
+  startSubscription: () =>
+    request<{ reactivated: true; subscriptionId: string } | StripeSubscribeParams>('/api/billing/subscribe', {
+      method: 'POST',
+    }),
 
-  cancelMembership: () => request<{ user: ApiUser }>('/api/auth/cancel', { method: 'POST' }).then((r) => r.user),
+  cancelMembership: () =>
+    request<{ message: string; periodEnd: string | null }>('/api/billing/cancel', { method: 'POST' }),
 
   deleteAccount: async () => {
     await request('/api/auth/account', { method: 'DELETE' });

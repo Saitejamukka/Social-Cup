@@ -10,6 +10,7 @@
     "@react-navigation/bottom-tabs": "^7.18.18",
     "@react-navigation/native": "^7.3.18",
     "@react-navigation/native-stack": "^7.18.10",
+    "@stripe/stripe-react-native": "0.64.0",
     "expo": "~57.0.19",
     "expo-apple-authentication": "~57.0.1",
     "expo-auth-session": "~57.0.11",
@@ -34,8 +35,8 @@
   },
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web"
   },
   "private": true

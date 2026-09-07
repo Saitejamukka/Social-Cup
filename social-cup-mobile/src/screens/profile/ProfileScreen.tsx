@@ -58,7 +58,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const handleCancelMembership = () => {
     showAlert(
       'Cancel membership?',
-      'Your card is managed by Stripe in production; this build cancels immediately rather than at the end of the paid period.',
+      'Your credits and redemptions keep working until the end of your current billing period, then your membership ends.',
       [
         { text: 'Keep membership', style: 'cancel' },
         { text: 'Cancel membership', style: 'destructive', onPress: () => cancelMembership() },
@@ -114,9 +114,15 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
               />
             </View>
             <Text style={styles.renewNote}>Resets monthly · no rollover</Text>
-            <TouchableOpacity onPress={handleCancelMembership}>
-              <Text style={styles.cancelMembershipText}>Cancel membership</Text>
-            </TouchableOpacity>
+            {user?.subscriptionCancelAtPeriodEnd && user.subscriptionCurrentPeriodEnd ? (
+              <Text style={styles.renewNote}>
+                Cancels on {new Date(user.subscriptionCurrentPeriodEnd).toLocaleDateString()}
+              </Text>
+            ) : (
+              <TouchableOpacity onPress={handleCancelMembership}>
+                <Text style={styles.cancelMembershipText}>Cancel membership</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
           <View style={styles.visitorCard}>

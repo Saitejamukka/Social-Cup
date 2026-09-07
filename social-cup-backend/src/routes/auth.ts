@@ -24,6 +24,8 @@ function serializeUser(user: {
   neighborhood: string | null;
   preferences: string[];
   authProvider: string;
+  subscriptionCancelAtPeriodEnd: boolean;
+  subscriptionCurrentPeriodEnd: Date | null;
 }) {
   return {
     id: user.id,
@@ -35,6 +37,8 @@ function serializeUser(user: {
     neighborhood: user.neighborhood,
     preferences: user.preferences,
     authProvider: user.authProvider,
+    subscriptionCancelAtPeriodEnd: user.subscriptionCancelAtPeriodEnd,
+    subscriptionCurrentPeriodEnd: user.subscriptionCurrentPeriodEnd,
   };
 }
 
@@ -223,29 +227,8 @@ router.patch('/profile', requireAuth, async (req: AuthedRequest, res: Response) 
   res.json({ success: true, user: serializeUser(user) });
 });
 
-// POST /api/auth/subscribe
-// Simulates a successful Stripe checkout confirmation. Real Stripe subscriptions,
-// the payment sheet, and webhooks are not wired up in this environment — see
-// project notes. This endpoint is where a verified Stripe webhook handler would
-// call the same credit-grant logic in production.
-router.post('/subscribe', requireAuth, async (req: AuthedRequest, res: Response) => {
-  const user = await prisma.user.update({
-    where: { id: req.userId! },
-    data: { accountStatus: 'MEMBER', credits: 30 },
-  });
-  res.json({ success: true, message: 'Subscribed — 30 drink credits granted', user: serializeUser(user) });
-});
-
-// POST /api/auth/cancel — cancel membership (access continues until period end is
-// not modeled without real Stripe billing periods, so this deactivates immediately
-// and is clearly labeled as a dev-mode simplification to the client).
-router.post('/cancel', requireAuth, async (req: AuthedRequest, res: Response) => {
-  const user = await prisma.user.update({
-    where: { id: req.userId! },
-    data: { accountStatus: 'CANCELED' },
-  });
-  res.json({ success: true, user: serializeUser(user) });
-});
+// Subscribe/cancel now live at POST /api/billing/subscribe and /api/billing/cancel,
+// backed by real Stripe subscriptions + webhooks — see routes/billing.ts.
 
 // DELETE /api/auth/account — required by Apple; cancels any active membership.
 // Redemption and payout history must survive account deletion (cafes' monthly

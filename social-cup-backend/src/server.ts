@@ -8,6 +8,8 @@ import { redemptionRoutes } from './routes/redemptions.js';
 import { baristaRoutes } from './routes/barista.js';
 import { adminRoutes } from './routes/admin.js';
 import { reviewRoutes } from './routes/reviews.js';
+import { billingRoutes } from './routes/billing.js';
+import { webhookRoutes } from './routes/webhooks.js';
 import { startScheduledJobs } from './lib/jobs.js';
 
 dotenv.config();
@@ -20,6 +22,12 @@ app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
 }));
+
+// Stripe webhook signature verification needs the raw request body, so this must be
+// registered before express.json() parses it — and before, since express.json() would
+// otherwise consume the body for every route regardless of path specificity.
+app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhookRoutes);
+
 app.use(express.json());
 
 // Request logger
@@ -45,6 +53,7 @@ app.use('/api/redemptions', redemptionRoutes);
 app.use('/api/barista', baristaRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/billing', billingRoutes);
 
 // 404 handler
 app.use((_req, res) => {

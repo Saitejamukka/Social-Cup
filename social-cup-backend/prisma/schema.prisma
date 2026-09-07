@@ -56,6 +56,13 @@ model User {
   providerUserId String?
   // 1 credit = $1. Members get 30/month per the plan; resets on renewal, never rolls over.
   credits       Int            @default(0)
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  // Set true once the member cancels; access/credits still last until subscriptionCurrentPeriodEnd
+  // per the PRD's "cancel takes effect at period end" rule — Stripe's `customer.subscription.deleted`
+  // webhook (fired when the period actually ends) is what flips accountStatus to CANCELED.
+  subscriptionCancelAtPeriodEnd Boolean  @default(false)
+  subscriptionCurrentPeriodEnd  DateTime? @db.Timestamptz(3)
   neighborhood  String?        @default("Bishop Arts")
   preferences   String[]       @default([]) // coffee preferences (matcha, espresso, cold brew, latte)
   createdAt     DateTime       @default(now()) @db.Timestamptz(3)

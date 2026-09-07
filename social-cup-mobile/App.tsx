@@ -5,17 +5,20 @@ import { NavigationContainer } from '@react-navigation/native';
 import { View, StyleSheet, Platform } from 'react-native';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { RateModal } from './src/components/RateModal';
+import { StripeRoot } from './src/components/StripeRoot';
 
 export default function App() {
   return (
     <SafeAreaProvider>
       <View style={styles.outerContainer}>
         <View style={styles.phoneContainer}>
-          <NavigationContainer>
-            <StatusBar style="dark" />
-            <RootNavigator />
-            <RateModal />
-          </NavigationContainer>
+          <StripeRoot>
+            <NavigationContainer>
+              <StatusBar style="dark" />
+              <RootNavigator />
+              <RateModal />
+            </NavigationContainer>
+          </StripeRoot>
         </View>
       </View>
     </SafeAreaProvider>
