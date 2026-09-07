@@ -25,6 +25,12 @@ import { Fonts } from './src/theme/typography';
 // doesn't specify its own fontFamily, replacing the OS default. Screens that
 // explicitly set fontFamily: 'serif' for headings still override this — see
 // the Fonts.display swap done across screens.
+//
+// Note: defaultProps.style only ever applies when a component omits the style
+// prop entirely — every screen here passes its own explicit style, so this
+// never actually overrides anything in practice. Harmless to leave in case a
+// future component omits style, but not a real "global default" — see the CSS
+// injection below for the one fix that had to bypass this limitation for real.
 function applyDefaultFont() {
   const TextAny = Text as any;
   TextAny.defaultProps = TextAny.defaultProps || {};
@@ -33,6 +39,18 @@ function applyDefaultFont() {
   const TextInputAny = TextInput as any;
   TextInputAny.defaultProps = TextInputAny.defaultProps || {};
   TextInputAny.defaultProps.style = [{ fontFamily: Fonts.body }, TextInputAny.defaultProps.style];
+}
+
+// The real fix for the browser's blue focus outline on web <input> elements —
+// injected as actual CSS so it applies regardless of how any screen's style
+// prop is set, unlike the defaultProps approach above.
+function injectWebFocusReset() {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+  if (document.getElementById('sc-focus-reset')) return;
+  const style = document.createElement('style');
+  style.id = 'sc-focus-reset';
+  style.textContent = 'input:focus, textarea:focus { outline: none; box-shadow: none; }';
+  document.head.appendChild(style);
 }
 
 export default function App() {
@@ -53,6 +71,7 @@ export default function App() {
   }
 
   applyDefaultFont();
+  injectWebFocusReset();
 
   return (
     <SafeAreaProvider>
