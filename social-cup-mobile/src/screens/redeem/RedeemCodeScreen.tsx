@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import QRCode from 'react-native-qrcode-svg';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { useAppStore } from '../../store/useAppStore';
@@ -89,8 +90,9 @@ export const RedeemCodeScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.content}>
           <Text style={styles.headerSubtitle}>Show this to your barista</Text>
 
-          {/* Large Code Display */}
+          {/* QR Code */}
           <View style={styles.codeCard}>
+            <QRCode value={activeRedemption.code} size={200} />
             <Text style={styles.codeText}>{activeRedemption.code}</Text>
           </View>
 
@@ -149,12 +151,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     width: '100%',
     alignItems: 'center',
+    gap: 16,
   },
   codeText: {
-    fontSize: 44,
+    fontSize: 20,
     fontWeight: '700',
     color: Colors.ink,
-    letterSpacing: 8,
+    letterSpacing: 4,
     fontFamily: 'monospace',
   },
   timerText: {

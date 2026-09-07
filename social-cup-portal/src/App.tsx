@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import jsQR from 'jsqr';
 import { api, setAuthToken, getAuthToken } from './api';
 
 type AdminSession = { kind: 'ADMIN'; name: string; email: string };
@@ -789,6 +790,15 @@ function BaristaSurface({ session, onDeviceRevoked }: { session: BaristaSession;
   const [scanResult, setScanResult] = useState<{ member?: string; drink?: string; credits?: number; errorMsg?: string }>({});
   const [today, setToday] = useState<any[]>([]);
   const [earnings, setEarnings] = useState<any | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const rafRef = useRef<number | null>(null);
+  // A decoded frame fires the scan immediately, but the camera loop keeps running
+  // until the resulting state change (success/error) actually stops it a render
+  // later — this guards against submitting the same decoded code twice in that gap.
+  const submittingRef = useRef(false);
 
   const guard = useCallback(
     async <T,>(fn: () => Promise<T>): Promise<T | undefined> => {
@@ -818,9 +828,10 @@ function BaristaSurface({ session, onDeviceRevoked }: { session: BaristaSession;
     if (tab === 'earnings') loadEarnings();
   }, [tab, loadToday, loadEarnings]);
 
-  const submitScan = async () => {
-    if (!manualCode) return;
-    const result = await guard(() => api.baristaScan(session.cafeId, manualCode, session.deviceToken)).catch((err: Error) => {
+  const submitScan = async (codeOverride?: string) => {
+    const codeToSubmit = codeOverride ?? manualCode;
+    if (!codeToSubmit) return;
+    const result = await guard(() => api.baristaScan(session.cafeId, codeToSubmit, session.deviceToken)).catch((err: Error) => {
       setScanResult({ errorMsg: err.message });
       setScanState('error');
       return undefined;
@@ -831,6 +842,66 @@ function BaristaSurface({ session, onDeviceRevoked }: { session: BaristaSession;
       setManualCode('');
     }
   };
+
+  const stopCamera = useCallback(() => {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  }, []);
+
+  const scanLoop = useCallback(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) {
+      rafRef.current = requestAnimationFrame(scanLoop);
+      return;
+    }
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      rafRef.current = requestAnimationFrame(scanLoop);
+      return;
+    }
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const decoded = jsQR(imageData.data, imageData.width, imageData.height);
+
+    if (decoded?.data && !submittingRef.current) {
+      submittingRef.current = true;
+      stopCamera();
+      submitScan(decoded.data).finally(() => {
+        submittingRef.current = false;
+      });
+      return;
+    }
+    rafRef.current = requestAnimationFrame(scanLoop);
+  }, [stopCamera]);
+
+  const startCamera = useCallback(async () => {
+    setCameraError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      rafRef.current = requestAnimationFrame(scanLoop);
+    } catch {
+      setCameraError("Camera not available — type the customer's code below instead.");
+    }
+  }, [scanLoop]);
+
+  useEffect(() => {
+    if (tab === 'scan' && scanState === 'idle') {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    return stopCamera;
+  }, [tab, scanState, startCamera, stopCamera]);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#1E2417', color: '#FAFBF6' }}>
@@ -853,10 +924,17 @@ function BaristaSurface({ session, onDeviceRevoked }: { session: BaristaSession;
             {scanState === 'idle' && (
               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <div style={{ position: 'relative', width: '280px', height: '280px', backgroundColor: '#000000', borderRadius: '20px', overflow: 'hidden', border: '2px solid #39442A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div className="sc-scanline-anim" />
-                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', textAlign: 'center', padding: '0 20px' }}>
-                    Point camera at customer's 5-minute QR code
-                  </div>
+                  {cameraError ? (
+                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: '0 20px' }}>
+                      {cameraError}
+                    </div>
+                  ) : (
+                    <>
+                      <video ref={videoRef} muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <canvas ref={canvasRef} style={{ display: 'none' }} />
+                      <div className="sc-scanline-anim" />
+                    </>
+                  )}
                   <Corner style={{ top: 12, left: 12, borderTop: '3px solid #6B7A3B', borderLeft: '3px solid #6B7A3B' }} />
                   <Corner style={{ top: 12, right: 12, borderTop: '3px solid #6B7A3B', borderRight: '3px solid #6B7A3B' }} />
                   <Corner style={{ bottom: 12, left: 12, borderBottom: '3px solid #6B7A3B', borderLeft: '3px solid #6B7A3B' }} />
@@ -872,7 +950,7 @@ function BaristaSurface({ session, onDeviceRevoked }: { session: BaristaSession;
                     onKeyDown={(e) => e.key === 'Enter' && submitScan()}
                     style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #39442A', backgroundColor: '#2B3320', color: '#FFFFFF', fontSize: '13px', outline: 'none' }}
                   />
-                  <button onClick={submitScan} style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', backgroundColor: '#6B7A3B', color: '#FFFFFF', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>
+                  <button onClick={() => submitScan()} style={{ padding: '12px 18px', borderRadius: '8px', border: 'none', backgroundColor: '#6B7A3B', color: '#FFFFFF', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>
                     Verify
                   </button>
                 </div>
