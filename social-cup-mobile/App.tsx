@@ -15,6 +15,7 @@ import {
   WorkSans_600SemiBold,
   WorkSans_700Bold,
 } from '@expo-google-fonts/work-sans';
+import { useFonts as useDancingScriptFonts, DancingScript_700Bold } from '@expo-google-fonts/dancing-script';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { RateModal } from './src/components/RateModal';
 import { StripeRoot } from './src/components/StripeRoot';
@@ -61,8 +62,9 @@ export default function App() {
     WorkSans_600SemiBold,
     WorkSans_700Bold,
   });
+  const [scriptLoaded] = useDancingScriptFonts({ DancingScript_700Bold });
 
-  if (!serifLoaded || !sansLoaded) {
+  if (!serifLoaded || !sansLoaded || !scriptLoaded) {
     return (
       <View style={[styles.outerContainer, styles.loadingContainer]}>
         <ActivityIndicator color={Colors.gold} />

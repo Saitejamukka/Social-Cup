@@ -9,4 +9,7 @@ export const Fonts = {
   bodyMedium: 'WorkSans_500Medium',
   bodySemiBold: 'WorkSans_600SemiBold',
   bodyBold: 'WorkSans_700Bold',
+  // A calligraphic script, reserved for standalone brand moments (the Welcome
+  // screen wordmark) — never for body copy or anything that needs to stay legible.
+  calligraphy: 'DancingScript_700Bold',
 } as const;

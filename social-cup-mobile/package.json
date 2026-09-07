@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
+    "@expo-google-fonts/dancing-script": "^0.4.2",
     "@expo-google-fonts/source-serif-4": "^0.4.1",
     "@expo-google-fonts/work-sans": "^0.4.2",
     "@expo/metro-runtime": "~57.0.15",
