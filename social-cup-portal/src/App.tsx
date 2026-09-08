@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
 import { api, setAuthToken, getAuthToken } from './api';
+import { loadPlacesLibrary, placesApiKey } from './googleMaps';
 
 type AdminSession = { kind: 'ADMIN'; name: string; email: string };
 type BaristaSession = { kind: 'BARISTA'; cafeId: string; cafeName: string; neighborhood: string; deviceToken: string };
@@ -445,6 +446,50 @@ function CafesTab() {
   );
 }
 
+// Google Places autofill (PRD architecture doc: "used only to autofill a cafe address
+// in the admin panel"). Entirely optional — renders nothing if VITE_GOOGLE_PLACES_API_KEY
+// isn't configured, leaving the plain Address input below as the only way to enter it.
+function AddressAutocomplete({ onSelect }: { onSelect: (data: { address: string; lat: number; lng: number }) => void }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [unavailable, setUnavailable] = useState(!placesApiKey());
+
+  useEffect(() => {
+    if (!placesApiKey() || !containerRef.current) return;
+    let element: google.maps.places.PlaceAutocompleteElement | null = null;
+    let cancelled = false;
+
+    loadPlacesLibrary()
+      .then(({ PlaceAutocompleteElement }) => {
+        if (cancelled || !containerRef.current) return;
+        element = new PlaceAutocompleteElement({ includedRegionCodes: ['us'] });
+        element.addEventListener('gmp-select', async (event) => {
+          const place = event.placePrediction.toPlace();
+          await place.fetchFields({ fields: ['formattedAddress', 'location'] });
+          if (place.formattedAddress && place.location) {
+            onSelect({ address: place.formattedAddress, lat: place.location.lat(), lng: place.location.lng() });
+          }
+        });
+        containerRef.current.appendChild(element);
+      })
+      .catch(() => setUnavailable(true));
+
+    return () => {
+      cancelled = true;
+      element?.remove();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (unavailable) return null;
+
+  return (
+    <div>
+      <div style={{ fontSize: '12px', color: '#6E7359', marginBottom: '4px' }}>Search for the address (autofills below)</div>
+      <div ref={containerRef} />
+    </div>
+  );
+}
+
 function CafeDrawer({ cafe, onClose, onSave, onResetPin, pinMessage }: { cafe: any; onClose: () => void; onSave: (data: any) => void; onResetPin?: () => void; pinMessage: string | null }) {
   const [form, setForm] = useState({
     name: cafe.name || '',
@@ -490,6 +535,9 @@ function CafeDrawer({ cafe, onClose, onSave, onResetPin, pinMessage }: { cafe: a
       </div>
       <input placeholder="Cafe Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={input} />
       <input placeholder="Neighborhood" value={form.neighborhood} onChange={(e) => setForm({ ...form, neighborhood: e.target.value })} style={input} />
+      <AddressAutocomplete
+        onSelect={({ address, lat, lng }) => setForm({ ...form, address, latitude: lat, longitude: lng })}
+      />
       <input placeholder="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} style={input} />
       <div style={{ display: 'flex', gap: '10px' }}>
         <input

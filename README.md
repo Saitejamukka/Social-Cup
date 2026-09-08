@@ -34,7 +34,7 @@ Social Cup/
 ### 2. 💻 Unified Business Web Portal (`social-cup-portal`)
 - **Built with**: React 19, Vite, TypeScript.
 - **Role-Based Portals**:
-  - **👑 HQ Administration**: Platform MRR, subscriber directory, live pricing and margin calculator, a Settings tab showing the live Stripe plan price, a partner-cafe management drawer (coordinates, cover photo, gallery, vibe tags, perk line), redemption audit trail with voiding modal, and monthly payout batches.
+  - **👑 HQ Administration**: Platform MRR, subscriber directory, live pricing and margin calculator, a Settings tab showing the live Stripe plan price, a partner-cafe management drawer (coordinates, cover photo, gallery, vibe tags, perk line, optional Google Places address autofill), redemption audit trail with voiding modal, and monthly payout batches.
   - **☕ Cafe Staff / Baristas**: Locked strictly to their assigned counter station, 4-digit station PIN security, real camera-based QR scanning (auto-detects and redeems), manual backup code entry as a fallback, scan verification (Success / Expired / Already used / Wrong cafe), today's live redemption log, and monthly cafe earnings summary.
 
 ### 3. ⚙️ Central Backend API (`social-cup-backend`)
@@ -88,3 +88,4 @@ cd social-cup-portal
 npm install
 npm run dev
 ```
+Address autofill in the cafe drawer is optional — set `VITE_GOOGLE_PLACES_API_KEY` in `social-cup-portal/.env` (a Google Cloud project with "Places API (New)" enabled and billing set up) to turn it on. Without a key, the address and coordinates are entered manually as before.
