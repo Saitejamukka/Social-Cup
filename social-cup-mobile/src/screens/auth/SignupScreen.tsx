@@ -71,8 +71,16 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleSubmit = async () => {
-    if (!name.trim() || !email.trim() || password.length < 8) {
-      setError('Enter your name, email, and a password of at least 8 characters.');
+    if (!name.trim()) {
+      setError('Enter your name.');
+      return;
+    }
+    if (!email.trim()) {
+      setError('Enter your email.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
       return;
     }
     setError(null);
