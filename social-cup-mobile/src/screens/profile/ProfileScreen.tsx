@@ -210,6 +210,14 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.settingsGroup}>
           <TouchableOpacity
             style={styles.settingRow}
+            onPress={() => navigation.navigate('EditProfile')}
+          >
+            <Text style={styles.settingLabel}>Edit profile</Text>
+            <Text style={styles.arrow}>→</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.settingRow}
             onPress={() => navigation.navigate('Social')}
           >
             <Text style={styles.settingLabel}>Connections & activity</Text>

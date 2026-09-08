@@ -23,6 +23,7 @@ import { RedeemFailedScreen } from '../screens/redeem/RedeemFailedScreen';
 import { MembershipScreen } from '../screens/membership/MembershipScreen';
 import { PaymentScreen } from '../screens/membership/PaymentScreen';
 import { SocialScreen } from '../screens/social/SocialScreen';
+import { EditProfileScreen } from '../screens/profile/EditProfileScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -81,6 +82,9 @@ export const RootNavigator: React.FC = () => {
 
       {/* Social & Midpoint Meetup */}
       <Stack.Screen name="Social" component={SocialScreen} />
+
+      {/* Edit Profile */}
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
     </Stack.Navigator>
   );
 };

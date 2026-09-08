@@ -14,6 +14,7 @@ export type RootStackParamList = {
   Membership: undefined;
   Payment: undefined;
   Social: undefined;
+  EditProfile: undefined;
 };
 
 export type TabParamList = {
