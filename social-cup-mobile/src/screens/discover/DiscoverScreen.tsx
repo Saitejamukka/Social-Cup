@@ -28,6 +28,7 @@ type Props = CompositeScreenProps<
 export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
   const {
     user,
+    isConnected,
     offlineSim,
     setOfflineSim,
     locationAllowed,
@@ -40,21 +41,23 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
   } = useAppStore();
 
   const canSortByDistance = locationAllowed === true && userCoords !== null;
+  // offlineSim is a manual QA override on top of real device connectivity — see useAppStore.
+  const isOffline = offlineSim || !isConnected;
 
   useEffect(() => {
+    if (isOffline) return;
     fetchCafes(
       canSortByDistance && distanceSortEnabled
         ? { lat: userCoords!.latitude, lng: userCoords!.longitude }
         : undefined
     );
-  }, [fetchCafes, canSortByDistance, distanceSortEnabled, userCoords?.latitude, userCoords?.longitude]);
+  }, [fetchCafes, isOffline, canSortByDistance, distanceSortEnabled, userCoords?.latitude, userCoords?.longitude]);
 
   const handleSelectCafe = (cafeId: string) => {
     navigation.navigate('CafeDetail', { cafeId });
   };
 
-  // Offline Simulation screen
-  if (offlineSim) {
+  if (isOffline) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.offlineContainer}>
@@ -66,6 +69,8 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity
             style={styles.retryBtn}
             onPress={() => {
+              // The manual QA override needs an explicit way back; real connectivity
+              // recovers on its own via the NetInfo listener in RootNavigator.
               setOfflineSim(false);
               fetchCafes();
             }}

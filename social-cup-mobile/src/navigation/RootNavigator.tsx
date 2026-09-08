@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
 import { useAppStore } from '../store/useAppStore';
@@ -26,11 +27,17 @@ import { SocialScreen } from '../screens/social/SocialScreen';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const RootNavigator: React.FC = () => {
-  const { user, authLoading, bootstrapAuth } = useAppStore();
+  const { user, authLoading, bootstrapAuth, setIsConnected } = useAppStore();
 
   useEffect(() => {
     bootstrapAuth();
   }, [bootstrapAuth]);
+
+  useEffect(() => {
+    // isConnected can briefly be null while NetInfo is still figuring out the initial
+    // state — treat that as online rather than flashing the offline screen on launch.
+    return NetInfo.addEventListener((state) => setIsConnected(state.isConnected !== false));
+  }, [setIsConnected]);
 
   if (authLoading) {
     return (
