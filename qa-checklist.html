@@ -1,0 +1,356 @@
+<!doctype html>
+<title>Social Cup QA Pass</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Work+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #FCFCF8;
+    --surface: #FFFFFF;
+    --panel: #EEF1E3;
+    --ink: #2B3320;
+    --mute: #6E7359;
+    --pale: #A6AC94;
+    --line: #DEE3D0;
+    --accent: #6B7A3B;
+    --accent-dark: #4F5C29;
+    --success: #4F7A3E;
+    --success-bg: #E9EEDD;
+    --danger: #B84C3E;
+    --danger-bg: #F6E3DF;
+    --warn: #96661F;
+    --warn-bg: #F3E8D3;
+    --shadow: 0 1px 2px rgba(43,51,32,0.06);
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --bg: #181D12;
+      --surface: #212818;
+      --panel: #2A331F;
+      --ink: #F2F4EA;
+      --mute: #B7C09A;
+      --pale: #7C876B;
+      --line: #3A4429;
+      --accent: #93A863;
+      --accent-dark: #B7CC8E;
+      --success: #7FAE6C;
+      --success-bg: #263323;
+      --danger: #E08D7D;
+      --danger-bg: #3A2620;
+      --warn: #D9AE63;
+      --warn-bg: #3A3320;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #181D12;
+    --surface: #212818;
+    --panel: #2A331F;
+    --ink: #F2F4EA;
+    --mute: #B7C09A;
+    --pale: #7C876B;
+    --line: #3A4429;
+    --accent: #93A863;
+    --accent-dark: #B7CC8E;
+    --success: #7FAE6C;
+    --success-bg: #263323;
+    --danger: #E08D7D;
+    --danger-bg: #3A2620;
+    --warn: #D9AE63;
+    --warn-bg: #3A3320;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Work Sans', -apple-system, sans-serif;
+    padding-bottom: 80px;
+  }
+  code, .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+  header.top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    padding: 18px 20px;
+  }
+  .top-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  h1 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 700;
+    font-size: 22px;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--mute);
+    font-weight: 500;
+  }
+  .progress-track {
+    width: 120px;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--panel);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+  .progress-count { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
+
+  main { max-width: 720px; margin: 0 auto; padding: 24px 20px; }
+
+  .intro {
+    font-size: 13px;
+    color: var(--mute);
+    line-height: 20px;
+    margin-bottom: 24px;
+  }
+
+  .creds {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 28px;
+    box-shadow: var(--shadow);
+  }
+  .creds h2 {
+    font-family: 'Source Serif 4', serif;
+    font-size: 15px;
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+  .creds-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 24px;
+    font-size: 12.5px;
+  }
+  .creds-grid dt { color: var(--mute); margin-bottom: 2px; }
+  .creds-grid dd { margin: 0; font-weight: 500; }
+  @media (max-width: 520px) { .creds-grid { grid-template-columns: 1fr; } }
+
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--line);
+    gap: 10px;
+  }
+  .section-head h2 {
+    font-family: 'Source Serif 4', serif;
+    font-size: 16px;
+    margin: 0;
+    font-weight: 600;
+  }
+  .section-count {
+    font-size: 11.5px;
+    color: var(--mute);
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  ul.items { list-style: none; margin: 0; padding: 6px 8px; }
+  li.item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  li.item:hover { background: var(--panel); }
+  li.item input[type="checkbox"] {
+    appearance: none;
+    width: 19px;
+    height: 19px;
+    min-width: 19px;
+    border: 1.5px solid var(--pale);
+    border-radius: 6px;
+    margin-top: 1px;
+    cursor: pointer;
+    position: relative;
+    background: var(--surface);
+  }
+  li.item input[type="checkbox"]:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  li.item input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 5px;
+    height: 10px;
+    border: solid var(--surface);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .item-label { font-size: 13.5px; line-height: 19px; flex: 1; }
+  li.item.checked .item-label { color: var(--mute); text-decoration: line-through; text-decoration-color: var(--pale); }
+  .pill {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-left: 8px;
+    vertical-align: middle;
+    letter-spacing: 0.2px;
+  }
+  .pill-blocked { background: var(--warn-bg); color: var(--warn); }
+  .pill-web { background: var(--panel); color: var(--mute); }
+
+  footer {
+    max-width: 720px;
+    margin: 24px auto 0;
+    padding: 0 20px;
+    font-size: 12px;
+    color: var(--pale);
+    text-align: center;
+  }
+</style>
+
+<header class="top">
+  <div class="top-inner">
+    <h1>☕ Social Cup — QA Pass</h1>
+    <div class="progress-wrap">
+      <span class="progress-count" id="countLabel">0 / 0</span>
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <p class="intro">Manual test pass across the mobile app, admin portal, and barista portal. Tap a row to check it off — progress is saved automatically. Items marked <span class="pill pill-blocked">NATIVE BUILD</span> can't be tested until the Android build issue is fixed; items marked <span class="pill pill-web">WEB ONLY</span> are expected to behave differently (or be unavailable) outside the browser preview.</p>
+
+  <div class="creds">
+    <h2>Reference — test accounts &amp; URLs</h2>
+    <dl class="creds-grid">
+      <div><dt>Mobile app</dt><dd class="mono">localhost:8081</dd></div>
+      <div><dt>Portal (admin + barista)</dt><dd class="mono">localhost:5173</dd></div>
+      <div><dt>Admin login</dt><dd class="mono">admin@socialcup.app / SocialCupAdmin123!</dd></div>
+      <div><dt>Demo member</dt><dd class="mono">jordan@socialcup.app / SocialCupDemo123!</dd></div>
+      <div><dt>Every seeded cafe PIN</dt><dd class="mono">4821</dd></div>
+      <div><dt>Stripe test card</dt><dd class="mono">4242 4242 4242 4242</dd></div>
+    </dl>
+  </div>
+
+  <div id="sections"></div>
+</main>
+
+<footer>Social Cup · internal QA tracker</footer>
+
+<script>
+  const DATA = __DATA__;
+
+  function render() {
+    let total = 0, done = 0;
+    const container = document.getElementById('sections');
+    container.innerHTML = '';
+    DATA.forEach((section, sIdx) => {
+      const sectionDone = section.items.filter(i => i.checked).length;
+      total += section.items.length;
+      done += sectionDone;
+
+      const sectionEl = document.createElement('div');
+      sectionEl.className = 'section';
+
+      const head = document.createElement('div');
+      head.className = 'section-head';
+      head.innerHTML = `<h2>${section.title}</h2><span class="section-count">${sectionDone} / ${section.items.length}</span>`;
+      sectionEl.appendChild(head);
+
+      const ul = document.createElement('ul');
+      ul.className = 'items';
+      section.items.forEach((item, iIdx) => {
+        const li = document.createElement('li');
+        li.className = 'item' + (item.checked ? ' checked' : '');
+        const badge = item.badge === 'blocked' ? '<span class="pill pill-blocked">NATIVE BUILD</span>'
+                    : item.badge === 'web' ? '<span class="pill pill-web">WEB ONLY</span>' : '';
+        li.innerHTML = `<input type="checkbox" ${item.checked ? 'checked' : ''} /><span class="item-label">${item.label}${badge}</span>`;
+        li.addEventListener('click', (e) => {
+          e.preventDefault();
+          toggle(sIdx, iIdx);
+        });
+        ul.appendChild(li);
+      });
+      sectionEl.appendChild(ul);
+      container.appendChild(sectionEl);
+    });
+
+    document.getElementById('countLabel').textContent = `${done} / ${total}`;
+    document.getElementById('progressFill').style.width = total ? `${(done / total) * 100}%` : '0%';
+  }
+
+  let publishing = false;
+  let pending = false;
+
+  async function toggle(sIdx, iIdx) {
+    DATA[sIdx].items[iIdx].checked = !DATA[sIdx].items[iIdx].checked;
+    render();
+    schedulePublish();
+  }
+
+  function schedulePublish() {
+    if (publishing) { pending = true; return; }
+    doPublish();
+  }
+
+  async function doPublish() {
+    publishing = true;
+    try {
+      const artifact = await claude.use('artifact');
+      if (artifact) {
+        await artifact.publish(serializeCurrentState());
+      }
+    } catch (e) {
+      console.warn('Could not save progress:', e);
+    } finally {
+      publishing = false;
+      if (pending) { pending = false; doPublish(); }
+    }
+  }
+
+  function serializeCurrentState() {
+    const doc = document.documentElement.cloneNode(true);
+    const script = doc.querySelector('script');
+    script.textContent = script.textContent.replace(
+      /const DATA = .*?;\n/,
+      `const DATA = ${JSON.stringify(DATA)};\n`
+    );
+    return '<!doctype html>\n' + doc.outerHTML;
+  }
+
+  render();
+</script>

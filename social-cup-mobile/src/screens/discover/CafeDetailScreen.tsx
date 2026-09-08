@@ -231,7 +231,9 @@ const styles = StyleSheet.create({
   },
   galleryWrapper: {
     height: 240,
-    width: '100%',
+    marginHorizontal: 20,
+    marginTop: 12,
+    borderRadius: 20,
     backgroundColor: Colors.panel,
     position: 'relative',
     overflow: 'hidden',

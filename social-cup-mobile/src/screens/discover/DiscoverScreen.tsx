@@ -93,7 +93,7 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
         {/* Top Header */}
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.greeting}>Good afternoon</Text>
+            <Text style={styles.greeting}>Hi there!</Text>
             <Text style={styles.userName}>{user?.name ?? ''}</Text>
           </View>
           <TouchableOpacity

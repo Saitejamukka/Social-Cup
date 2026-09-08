@@ -52,7 +52,13 @@ router.post('/subscribe', requireAuth, async (req: AuthedRequest, res: Response)
     customer: customerId,
     items: [{ price: STRIPE_PRICE_ID }],
     payment_behavior: 'default_incomplete',
-    payment_settings: { save_default_payment_method: 'on_subscription' },
+    payment_settings: {
+      save_default_payment_method: 'on_subscription',
+      // Card stays the default; US bank account (ACH direct debit) is offered
+      // alongside it — Stripe's own PaymentElement/PaymentSheet renders the bank
+      // search + institution list natively once this is enabled, no custom UI needed.
+      payment_method_types: ['card', 'us_bank_account'],
+    },
   });
 
   // As of this API version, invoices no longer carry a `payment_intent` field directly —
