@@ -13,7 +13,7 @@ interface AppState {
   registerWithOAuth: (provider: 'google' | 'apple', idToken: string, name?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  updateProfile: (data: { name?: string; neighborhood?: string; preferences?: string[] }) => Promise<void>;
+  updateProfile: (data: { name?: string; neighborhood?: string; preferences?: string[]; photoUrl?: string | null }) => Promise<void>;
   // Kicks off a real Stripe subscription. Returns PaymentSheet params to present, or
   // `{ reactivated: true }` if it just undid a pending cancellation with nothing to pay.
   startSubscription: () => Promise<{ reactivated: true } | StripeSubscribeParams>;

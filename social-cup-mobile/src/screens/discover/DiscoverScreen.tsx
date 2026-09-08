@@ -100,7 +100,11 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.profileAvatar}
             onPress={() => navigation.navigate('ProfileTab')}
           >
-            <Text style={styles.avatarGlyph}>👤</Text>
+            {user?.photoUrl ? (
+              <Image source={{ uri: user.photoUrl }} style={styles.profileAvatarImage} resizeMode="cover" />
+            ) : (
+              <Text style={styles.avatarGlyph}>👤</Text>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -246,6 +250,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.panel,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  profileAvatarImage: {
+    width: '100%',
+    height: '100%',
   },
   avatarGlyph: {
     fontSize: 18,

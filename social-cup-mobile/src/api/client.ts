@@ -69,6 +69,7 @@ export interface ApiUser {
   subscriptionCancelAtPeriodEnd: boolean;
   subscriptionCurrentPeriodEnd: string | null;
   emailVerified: boolean;
+  photoUrl: string | null;
 }
 
 export interface StripeSubscribeParams {
@@ -187,7 +188,7 @@ export const api = {
 
   me: () => request<{ user: ApiUser }>('/api/auth/me').then((r) => r.user),
 
-  updateProfile: (data: { name?: string; neighborhood?: string; preferences?: string[] }) =>
+  updateProfile: (data: { name?: string; neighborhood?: string; preferences?: string[]; photoUrl?: string | null }) =>
     request<{ user: ApiUser }>('/api/auth/profile', { method: 'PATCH', body: JSON.stringify(data) }).then((r) => r.user),
 
   // Starts a real Stripe subscription. Either returns PaymentSheet params to collect a

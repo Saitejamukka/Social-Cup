@@ -63,6 +63,7 @@ function serializeUser(user: {
   subscriptionCancelAtPeriodEnd: boolean;
   subscriptionCurrentPeriodEnd: Date | null;
   emailVerified: boolean;
+  photoUrl: string | null;
 }) {
   return {
     id: user.id,
@@ -77,6 +78,7 @@ function serializeUser(user: {
     subscriptionCancelAtPeriodEnd: user.subscriptionCancelAtPeriodEnd,
     subscriptionCurrentPeriodEnd: user.subscriptionCurrentPeriodEnd,
     emailVerified: user.emailVerified,
+    photoUrl: user.photoUrl,
   };
 }
 
@@ -257,15 +259,28 @@ router.get('/me', requireAuth, async (req: AuthedRequest, res: Response) => {
   res.json({ success: true, user: serializeUser(user) });
 });
 
-// PATCH /api/auth/profile — display name, neighbourhood, coffee preferences
+// PATCH /api/auth/profile — display name, neighbourhood, coffee preferences, photo
 router.patch('/profile', requireAuth, async (req: AuthedRequest, res: Response) => {
-  const { name, neighborhood, preferences } = req.body ?? {};
+  const { name, neighborhood, preferences, photoUrl } = req.body ?? {};
+
+  if (photoUrl !== undefined && photoUrl !== null) {
+    if (typeof photoUrl !== 'string' || !photoUrl.startsWith('data:image/')) {
+      return res.status(400).json({ success: false, error: 'photoUrl must be a data:image/... URI' });
+    }
+    // ~2MB of actual image bytes once base64's ~33% overhead is accounted for — plenty
+    // for a resized avatar, small enough to keep rows and API responses reasonable.
+    if (photoUrl.length > 2_800_000) {
+      return res.status(400).json({ success: false, error: 'Photo is too large' });
+    }
+  }
+
   const user = await prisma.user.update({
     where: { id: req.userId! },
     data: {
       ...(name !== undefined ? { name } : {}),
       ...(neighborhood !== undefined ? { neighborhood } : {}),
       ...(preferences !== undefined ? { preferences: Array.isArray(preferences) ? preferences : [preferences] } : {}),
+      ...(photoUrl !== undefined ? { photoUrl } : {}),
     },
   });
   res.json({ success: true, user: serializeUser(user) });

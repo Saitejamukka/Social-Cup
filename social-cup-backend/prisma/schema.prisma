@@ -73,6 +73,10 @@ model User {
   subscriptionCurrentPeriodEnd  DateTime? @db.Timestamptz(3)
   neighborhood  String?        @default("Bishop Arts")
   preferences   String[]       @default([]) // coffee preferences (matcha, espresso, cold brew, latte)
+  // PRD 2.3: "Profile photo, optional and skippable." A data: URI (resized/compressed
+  // client-side before upload) rather than an S3 URL — see AWS S3/CloudFront in the
+  // README's "not yet built" list.
+  photoUrl      String?
   createdAt     DateTime       @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime       @updatedAt @db.Timestamptz(3)
 

@@ -36,6 +36,12 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Social Cup uses your photos to let you set a profile picture."
+        }
+      ],
+      [
         "@stripe/stripe-react-native",
         {
           "enableGooglePay": true

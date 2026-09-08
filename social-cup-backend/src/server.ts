@@ -28,7 +28,8 @@ app.use(cors({
 // otherwise consume the body for every route regardless of path specificity.
 app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhookRoutes);
 
-app.use(express.json());
+// Default 100kb is too small for a profile photo sent as a base64 data URI.
+app.use(express.json({ limit: '5mb' }));
 
 // Request logger
 app.use((req, _res, next) => {

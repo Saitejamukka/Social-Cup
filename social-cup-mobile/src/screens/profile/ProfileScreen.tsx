@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,11 @@ import {
   SafeAreaView,
   ScrollView,
   Switch,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -29,6 +33,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     logout,
     deleteAccount,
     cancelMembership,
+    updateProfile,
     locationAllowed,
     setLocationAllowed,
     offlineSim,
@@ -38,6 +43,8 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     toggleNotifReminders,
     toggleNotifRenewals,
   } = useAppStore();
+
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const isMember = user?.accountStatus === 'MEMBER';
 
@@ -55,6 +62,42 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const handleLogout = async () => {
     await logout();
     (navigation as any).reset({ index: 0, routes: [{ name: 'Welcome' }] });
+  };
+
+  const handleChangePhoto = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      showAlert('Permission needed', 'Allow photo library access to set a profile picture.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets[0]) return;
+
+    setUploadingPhoto(true);
+    try {
+      // Resize down before upload — a phone camera photo can be several MB, far more
+      // than a ~56px avatar ever needs, and the backend caps the stored data URI size.
+      // height: null (auto, preserving aspect ratio) throws on web's canvas-based
+      // implementation, so the target height is computed explicitly instead.
+      const asset = result.assets[0];
+      const targetWidth = Math.min(512, asset.width);
+      const targetHeight = Math.round((targetWidth / asset.width) * asset.height);
+      const context = ImageManipulator.manipulate(asset.uri);
+      context.resize({ width: targetWidth, height: targetHeight });
+      const rendered = await context.renderAsync();
+      const { base64 } = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.7, base64: true });
+      await updateProfile({ photoUrl: `data:image/jpeg;base64,${base64}` });
+    } catch (err: any) {
+      showAlert('Could not update photo', err.message || 'Please try again.');
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
   const handleCancelMembership = () => {
@@ -97,9 +140,20 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.container}>
         {/* Profile Header */}
         <FadeSlideIn style={styles.userHeader}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarGlyph}>👤</Text>
-          </View>
+          <TouchableOpacity style={styles.avatarWrapper} onPress={handleChangePhoto} disabled={uploadingPhoto}>
+            <View style={styles.avatar}>
+              {uploadingPhoto ? (
+                <ActivityIndicator color={Colors.gold} />
+              ) : user?.photoUrl ? (
+                <Image source={{ uri: user.photoUrl }} style={styles.avatarImage} resizeMode="cover" />
+              ) : (
+                <Text style={styles.avatarGlyph}>👤</Text>
+              )}
+            </View>
+            <View style={styles.avatarEditBadge}>
+              <Text style={styles.avatarEditBadgeText}>✎</Text>
+            </View>
+          </TouchableOpacity>
           <View>
             <Text style={styles.name}>{user?.name ?? ''}</Text>
             <Text style={[styles.status, { color: statusColor }]}>{statusLabel}</Text>
@@ -237,6 +291,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
   },
+  avatarWrapper: {
+    width: 56,
+    height: 56,
+  },
   avatar: {
     width: 56,
     height: 56,
@@ -244,9 +302,31 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.panel,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   avatarGlyph: {
     fontSize: 24,
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: Colors.gold,
+    borderWidth: 2,
+    borderColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarEditBadgeText: {
+    fontSize: 10,
+    color: Colors.ink,
   },
   name: {
     fontSize: 18,
