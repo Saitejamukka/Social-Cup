@@ -13,6 +13,7 @@ import {
   OAuthProvider,
 } from '../lib/auth.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../lib/email.js';
+import { stripe } from '../lib/stripe.js';
 
 const router = Router();
 
@@ -405,6 +406,14 @@ router.post('/reset-password', async (req: Request, res: Response) => {
 // the row outright.
 router.delete('/account', requireAuth, async (req: AuthedRequest, res: Response) => {
   const id = req.userId!;
+
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (user?.stripeSubscriptionId) {
+    // Deleted accounts can't reach Stripe's cancellation page anymore, so cancel
+    // immediately here rather than at period end.
+    await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+  }
+
   await prisma.user.update({
     where: { id },
     data: {

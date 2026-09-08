@@ -69,9 +69,15 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleDeleteAccount = () => {
+    const message = isMember
+      ? `You have an active membership with ${user?.credits ?? 0} credit${
+          user?.credits === 1 ? '' : 's'
+        } remaining. Deleting your account will immediately cancel your membership and this cannot be undone.`
+      : 'This cannot be undone.';
+
     showAlert(
       'Delete your account?',
-      'This cancels any active membership and cannot be undone.',
+      message,
       [
         { text: 'Cancel', style: 'cancel' },
         {
