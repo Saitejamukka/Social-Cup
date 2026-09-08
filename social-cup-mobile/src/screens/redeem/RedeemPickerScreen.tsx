@@ -88,7 +88,7 @@ export const RedeemPickerScreen: React.FC<Props> = ({ route, navigation }) => {
                   <View style={styles.costCol}>
                     <Text style={styles.creditCost}>{drink.creditsCost} cr</Text>
                     {!canAfford && (
-                      <Text style={styles.notEnough}>Not enough</Text>
+                      <Text style={styles.notEnough}>Not enough credits</Text>
                     )}
                   </View>
                 </AnimatedPressable>

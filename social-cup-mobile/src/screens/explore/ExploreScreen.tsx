@@ -33,7 +33,7 @@ export const ExploreScreen: React.FC<Props> = ({ navigation }) => {
 
   const neighborhoodList = ['All', ...NEIGHBORHOODS];
 
-  // Server-backed filtering: the PRD's neighbourhood filter + name search run on the API.
+  // Server-backed filtering: the PRD's neighborhood filter + name search run on the API.
   useEffect(() => {
     const timeout = setTimeout(() => {
       fetchCafes({

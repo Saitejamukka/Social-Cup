@@ -34,7 +34,7 @@ export const DiaryScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <FadeSlideIn style={styles.header}>
-          <Text style={styles.title}>Your Drink Diary</Text>
+          <Text style={styles.title}>Your drink diary</Text>
           <Text style={styles.count}>
             {diary.length} drink{diary.length === 1 ? '' : 's'} rated
           </Text>

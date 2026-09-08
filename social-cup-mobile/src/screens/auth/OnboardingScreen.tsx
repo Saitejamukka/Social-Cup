@@ -49,7 +49,7 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
       await handleFinish();
     } catch {
       // Permission granted but position unavailable (e.g. GPS off) — fall back
-      // to neighbourhood-based ordering rather than blocking onboarding.
+      // to neighborhood-based ordering rather than blocking onboarding.
       setLocationAllowed(false);
     } finally {
       setRequestingLocation(false);
@@ -131,11 +131,11 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
             </FadeSlideIn>
           )}
 
-          {/* STEP 1: Home Neighbourhood */}
+          {/* STEP 1: Home Neighborhood */}
           {step === 1 && (
             <FadeSlideIn key="step-1" style={styles.stepContainer}>
               <View style={styles.header}>
-                <Text style={styles.title}>Your home neighbourhood</Text>
+                <Text style={styles.title}>Your home neighborhood</Text>
                 <Text style={styles.subtitle}>
                   We use this if location is off, and as a fallback filter.
                 </Text>
@@ -173,7 +173,7 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
               {locationAllowed === false && (
                 <View style={styles.locationNote}>
                   <Text style={styles.locationNoteText}>
-                    We'll sort cafes by your neighbourhood ({draftNeighborhood}) instead.
+                    We'll sort cafes by your neighborhood ({draftNeighborhood}) instead.
                   </Text>
                 </View>
               )}

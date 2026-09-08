@@ -115,7 +115,7 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
           activeOpacity={0.8}
         >
           <Text style={styles.searchIcon}>⌕</Text>
-          <Text style={styles.searchPlaceholder}>Search cafes or neighbourhoods</Text>
+          <Text style={styles.searchPlaceholder}>Search cafes or neighborhoods</Text>
         </TouchableOpacity>
 
         {/* Location denied notice */}

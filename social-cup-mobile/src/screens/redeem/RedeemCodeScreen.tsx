@@ -67,6 +67,7 @@ export const RedeemCodeScreen: React.FC<Props> = ({ route, navigation }) => {
   const minutes = Math.floor(secondsLeft / 60);
   const seconds = secondsLeft % 60;
   const timerLabel = `${minutes}:${String(seconds).padStart(2, '0')} remaining`;
+  const isUrgent = secondsLeft > 0 && secondsLeft <= 30;
 
   const handleCancel = async () => {
     navigatedAway.current = true;
@@ -99,7 +100,9 @@ export const RedeemCodeScreen: React.FC<Props> = ({ route, navigation }) => {
           </PopIn>
 
           {/* Timer */}
-          <Text style={styles.timerText}>{secondsLeft > 0 ? timerLabel : 'Expiring…'}</Text>
+          <Text style={[styles.timerText, (isUrgent || secondsLeft === 0) && styles.timerTextUrgent]}>
+            {secondsLeft > 0 ? timerLabel : 'Expiring…'}
+          </Text>
 
           {/* Backup Code */}
           <Text style={styles.backupText}>
@@ -166,6 +169,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.gold,
+  },
+  timerTextUrgent: {
+    color: Colors.danger,
   },
   backupText: {
     fontSize: 13,
