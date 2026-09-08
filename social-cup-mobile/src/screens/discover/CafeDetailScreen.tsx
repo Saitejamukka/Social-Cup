@@ -7,21 +7,20 @@ import {
   SafeAreaView,
   ScrollView,
   Image,
-  Dimensions,
   ActivityIndicator,
   Linking,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { BackButton } from '../../components/BackButton';
+import { PillButton } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { api, ApiCafe } from '../../api/client';
 import { showAlert } from '../../utils/alert';
 import { FadeSlideIn } from '../../components/FadeSlideIn';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CafeDetail'>;
 
@@ -30,6 +29,11 @@ export const CafeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user, openRateModal, getCafe } = useAppStore();
   const [cafe, setCafe] = useState<ApiCafe | undefined>(getCafe(cafeId));
   const [loading, setLoading] = useState(!cafe);
+  // Measured from the actual rendered container rather than Dimensions.get('window') —
+  // on web the app renders inside a centered, width-capped "phone frame" that's often
+  // much narrower than the real browser window, so sizing the gallery image off the
+  // window width badly over-zoomed it once resizeMode="cover" scaled to fill that width.
+  const [galleryWidth, setGalleryWidth] = useState(0);
 
   useEffect(() => {
     if (!cafe) {
@@ -69,23 +73,20 @@ export const CafeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Photo Gallery Header Carousel */}
-        <View style={styles.galleryWrapper}>
-          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
-            {galleryImages.map((imgUri, idx) => (
-              <Image
-                key={idx}
-                source={{ uri: imgUri }}
-                style={styles.galleryImage}
-                resizeMode="cover"
-              />
-            ))}
-          </ScrollView>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backBtnText}>←</Text>
-          </TouchableOpacity>
+        <View style={styles.galleryWrapper} onLayout={(e) => setGalleryWidth(e.nativeEvent.layout.width)}>
+          {galleryWidth > 0 && (
+            <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
+              {galleryImages.map((imgUri, idx) => (
+                <Image
+                  key={idx}
+                  source={{ uri: imgUri }}
+                  style={[styles.galleryImage, { width: galleryWidth }]}
+                  resizeMode="cover"
+                />
+              ))}
+            </ScrollView>
+          )}
+          <BackButton style={styles.backBtn} onPress={() => navigation.goBack()} />
         </View>
 
         {/* Info Header */}
@@ -199,20 +200,16 @@ export const CafeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
           <AnimatedPressable
             style={[
-              styles.redeemBtn,
-              (!isMember || hasCredits)
-                ? { backgroundColor: Colors.gold }
-                : { backgroundColor: Colors.panel },
+              PillButton.primary,
+              (!isMember || hasCredits) ? null : { backgroundColor: Colors.panel },
             ]}
             onPress={handleRedeemPress}
             disabled={isMember && !hasCredits}
           >
             <Text
               style={[
-                styles.redeemBtnText,
-                (!isMember || hasCredits)
-                  ? { color: Colors.ink }
-                  : { color: Colors.pale },
+                PillButton.primaryText,
+                (!isMember || hasCredits) ? null : { color: Colors.pale },
               ]}
             >
               {isMember ? 'Redeem a drink' : 'Become a member'}
@@ -240,24 +237,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   galleryImage: {
-    width: SCREEN_WIDTH,
     height: 240,
   },
   backBtn: {
     position: 'absolute',
     top: 50,
     left: 18,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backBtnText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.ink,
   },
   headerInfo: {
     padding: 20,
@@ -430,14 +415,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     color: Colors.mute,
-  },
-  redeemBtn: {
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  redeemBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
   },
 });

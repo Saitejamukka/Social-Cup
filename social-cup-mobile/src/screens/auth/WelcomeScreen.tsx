@@ -1,9 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, ImageBackground, SafeAreaView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Coffee } from 'lucide-react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
+import { PillButton } from '../../theme/buttons';
 import { FadeSlideIn } from '../../components/FadeSlideIn';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
 
@@ -14,121 +17,107 @@ const HERO_IMAGE =
 
 export const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
   return (
-    <View style={styles.container}>
-      {/* Top Hero Section */}
-      <ImageBackground source={{ uri: HERO_IMAGE }} style={styles.heroSection} resizeMode="cover">
-        <View style={styles.heroScrim} />
-        <FadeSlideIn style={styles.heroContent}>
-          <Text style={styles.heroWordmark}>Social Cup</Text>
-          <Text style={styles.heroSubtext}>Real drinks at the city's best independent cafes</Text>
-        </FadeSlideIn>
-      </ImageBackground>
-
-      {/* Bottom Action Section */}
-      <View style={styles.bottomSection}>
-        <FadeSlideIn delay={120} style={styles.titleContainer}>
-          <Text style={styles.title}>Welcome to Social Cup</Text>
-          <Text style={styles.subtitle}>
-            30 drink credits a month. Real drinks at the city's best independent cafes.
-          </Text>
+    <ImageBackground source={{ uri: HERO_IMAGE }} style={styles.background} resizeMode="cover">
+      <SafeAreaView style={styles.safeArea}>
+        <FadeSlideIn style={styles.topContent}>
+          <Coffee color={Colors.white} size={28} strokeWidth={1.8} />
+          <Text style={styles.wordmark}>Social Cup</Text>
+          <Text style={styles.tagline}>Discover. Sip. Share.</Text>
         </FadeSlideIn>
 
-        <FadeSlideIn delay={220} style={styles.buttonGroup}>
-          <AnimatedPressable style={styles.primaryBtn} onPress={() => navigation.navigate('Signup')}>
-            <Text style={styles.primaryBtnText}>Get started</Text>
-          </AnimatedPressable>
+        <View style={styles.spacer} />
 
-          <AnimatedPressable style={styles.secondaryBtn} onPress={() => navigation.navigate('Login')}>
-            <Text style={styles.secondaryBtnText}>I already have an account</Text>
-          </AnimatedPressable>
-        </FadeSlideIn>
-      </View>
-    </View>
+        <View style={styles.bottomWrap}>
+          <LinearGradient
+            colors={['transparent', 'rgba(53,42,36,0.88)']}
+            style={styles.bottomScrim}
+            pointerEvents="none"
+          />
+          <FadeSlideIn delay={150} style={styles.bottomContent}>
+            <Text style={styles.description}>
+              Find the best coffee spots, explore new flavors, and connect with coffee lovers around you.
+            </Text>
+
+            <FadeSlideIn delay={250} style={styles.buttonGroup}>
+              <AnimatedPressable style={PillButton.primary} onPress={() => navigation.navigate('Signup')}>
+                <Text style={PillButton.primaryText}>Get Started  →</Text>
+              </AnimatedPressable>
+
+              <AnimatedPressable style={styles.secondaryBtn} onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.secondaryBtnText}>I already have an account</Text>
+              </AnimatedPressable>
+            </FadeSlideIn>
+          </FadeSlideIn>
+        </View>
+      </SafeAreaView>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  background: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.darkBg,
   },
-  heroSection: {
-    flex: 1.1,
+  safeArea: {
+    flex: 1,
+  },
+  topContent: {
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
+    gap: 8,
+    paddingTop: 28,
   },
-  heroScrim: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(20, 22, 12, 0.42)',
-  },
-  heroContent: {
-    alignItems: 'center',
-    gap: 10,
-  },
-  heroWordmark: {
-    fontSize: 48,
+  wordmark: {
+    fontSize: 34,
     color: Colors.white,
-    fontFamily: Fonts.calligraphy,
+    fontFamily: Fonts.displayBold,
+    letterSpacing: 0.5,
     textShadowColor: 'rgba(0, 0, 0, 0.35)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 6,
   },
-  heroSubtext: {
+  tagline: {
     color: 'rgba(255, 255, 255, 0.92)',
-    fontSize: 13,
-    textAlign: 'center',
+    fontSize: 14,
     textShadowColor: 'rgba(0, 0, 0, 0.4)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
-  bottomSection: {
+  spacer: {
     flex: 1,
-    padding: 32,
-    justifyContent: 'space-between',
   },
-  titleContainer: {
-    gap: 10,
+  bottomWrap: {
+    justifyContent: 'flex-end',
   },
-  title: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: Colors.ink,
-    fontFamily: Fonts.display,
+  bottomScrim: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: -80,
+    bottom: 0,
   },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: Colors.mute,
+  bottomContent: {
+    paddingHorizontal: 28,
+    paddingBottom: 28,
+    gap: 20,
+  },
+  description: {
+    color: 'rgba(255, 255, 255, 0.92)',
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
   },
   buttonGroup: {
-    gap: 12,
-  },
-  primaryBtn: {
-    backgroundColor: Colors.gold,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  primaryBtnText: {
-    color: Colors.white,
-    fontSize: 15,
-    fontWeight: '600',
+    gap: 14,
   },
   secondaryBtn: {
-    borderWidth: 1,
-    borderColor: Colors.line,
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 8,
     alignItems: 'center',
   },
   secondaryBtnText: {
-    color: Colors.ink,
-    fontSize: 15,
+    color: Colors.white,
+    fontSize: 14,
     fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });

@@ -5,6 +5,8 @@ import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { BackButton } from '../../components/BackButton';
+import { PillButton } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { StripeSubscribeParams } from '../../api/client';
@@ -59,14 +61,14 @@ const CheckoutForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
         <PaymentElement />
       </View>
 
-      <AnimatedPressable style={styles.payBtn} onPress={handlePay} disabled={submitting || !stripe}>
+      <AnimatedPressable style={[PillButton.primary, styles.payBtn]} onPress={handlePay} disabled={submitting || !stripe}>
         {submitting ? (
           <>
-            <ActivityIndicator color={Colors.ink} />
-            {confirming && <Text style={styles.payBtnText}>Confirming your membership…</Text>}
+            <ActivityIndicator color={Colors.white} />
+            {confirming && <Text style={PillButton.primaryText}>Confirming your membership…</Text>}
           </>
         ) : (
-          <Text style={styles.payBtnText}>Subscribe — $24.99/month</Text>
+          <Text style={PillButton.primaryText}>Subscribe — $24.99/month</Text>
         )}
       </AnimatedPressable>
     </ScrollView>
@@ -111,9 +113,7 @@ export const PaymentScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {stage !== 'success' && (
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Text style={styles.backBtnText}>←</Text>
-          </TouchableOpacity>
+          <BackButton style={styles.backBtn} onPress={() => navigation.goBack()} />
         )}
 
         {stage === 'loading' && (
@@ -139,8 +139,8 @@ export const PaymentScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.title}>You're a member!</Text>
               <Text style={styles.successSub}>30 drink credits have been added to your account.</Text>
 
-              <AnimatedPressable style={styles.doneBtn} onPress={handleFinish}>
-                <Text style={styles.doneBtnText}>Done</Text>
+              <AnimatedPressable style={[PillButton.primary, styles.doneBtn]} onPress={handleFinish}>
+                <Text style={PillButton.primaryText}>Done</Text>
               </AnimatedPressable>
             </FadeSlideIn>
           </View>
@@ -160,13 +160,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   backBtn: {
-    paddingVertical: 4,
     alignSelf: 'flex-start',
-  },
-  backBtnText: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: Colors.ink,
   },
   formContainer: {
     flex: 1,
@@ -191,16 +185,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   payBtn: {
-    backgroundColor: Colors.gold,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
     marginTop: 'auto',
-  },
-  payBtnText: {
-    color: Colors.ink,
-    fontSize: 15,
-    fontWeight: '600',
   },
   errorText: {
     fontSize: 12,
@@ -235,15 +220,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   doneBtn: {
-    backgroundColor: Colors.gold,
-    paddingVertical: 15,
     paddingHorizontal: 40,
-    borderRadius: 12,
     marginTop: 10,
-  },
-  doneBtnText: {
-    color: Colors.ink,
-    fontSize: 15,
-    fontWeight: '600',
   },
 });

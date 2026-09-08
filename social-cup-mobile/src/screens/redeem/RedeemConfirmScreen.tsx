@@ -11,6 +11,8 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { BackButton } from '../../components/BackButton';
+import { PillButton } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { api, ApiCafe } from '../../api/client';
@@ -58,12 +60,7 @@ export const RedeemConfirmScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backBtnText}>←</Text>
-        </TouchableOpacity>
+        <BackButton style={styles.backBtn} onPress={() => navigation.goBack()} />
 
         <Text style={styles.title}>Confirm redemption</Text>
 
@@ -113,11 +110,11 @@ export const RedeemConfirmScreen: React.FC<Props> = ({ route, navigation }) => {
 
         {error && <Text style={styles.errorText}>{error}</Text>}
 
-        <AnimatedPressable style={styles.confirmBtn} onPress={handleConfirm} disabled={submitting}>
+        <AnimatedPressable style={[PillButton.primary, styles.confirmBtn]} onPress={handleConfirm} disabled={submitting}>
           {submitting ? (
-            <ActivityIndicator color={Colors.ink} />
+            <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={styles.confirmBtnText}>Confirm & generate code</Text>
+            <Text style={PillButton.primaryText}>Confirm & generate code</Text>
           )}
         </AnimatedPressable>
       </View>
@@ -136,13 +133,7 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   backBtn: {
-    paddingVertical: 4,
     alignSelf: 'flex-start',
-  },
-  backBtnText: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: Colors.ink,
   },
   title: {
     fontSize: 22,
@@ -225,15 +216,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   confirmBtn: {
-    backgroundColor: Colors.gold,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
     marginTop: 'auto',
-  },
-  confirmBtnText: {
-    color: Colors.ink,
-    fontSize: 15,
-    fontWeight: '600',
   },
 });

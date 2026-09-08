@@ -1,29 +1,25 @@
+// Warm, natural specialty-coffee palette: Cream background, Espresso text, Olive as the
+// primary accent, Pistachio/Pale Pistachio for soft cards and section backgrounds.
 export const Colors = {
-  // New Earthy Sage & Olive Theme
-  background: '#FCFCF8',
+  background: '#F9F5EA', // Cream
   surface: '#FFFFFF',
-  panel: '#EEF1E3',
-  ink: '#2B3320',
-  gold: '#6B7A3B', // Primary Olive/Sage accent
-  goldDark: '#4F5C29',
-  line: '#DEE3D0',
-  mute: '#6E7359',
-  pale: '#A6AC94',
+  panel: '#E8EBD9', // Pale Pistachio
+  ink: '#352A24', // Espresso
+  gold: '#687451', // Olive — primary accent (kept the `gold` key to avoid touching every call site)
+  goldDark: '#4E5A3F', // Darker Olive, for pressed/emphasis states
+  line: '#DEE3C9', // Soft sage border, between Cream and Pistachio
+  mute: '#6F6555', // Muted warm brown-olive, for secondary text
+  pale: '#A39C87', // Lighter warm tan-gray, for placeholders/tertiary text
   success: '#4F7A3E',
-  successBg: '#E9EEDD',
+  successBg: '#E8EBD9', // Pale Pistachio
   danger: '#B84C3E',
   dangerBg: '#F6E3DF',
   white: '#FFFFFF',
 
-  // Welcome hero & dark surfaces
-  heroBg: '#FAFBF6',
-  darkBg: '#2B3320',
-  darkCard: '#1E2417',
-  darkSurface: 'rgba(255, 255, 255, 0.06)',
-  darkBorder: 'rgba(255, 255, 255, 0.15)',
-  darkMute: 'rgba(255, 255, 255, 0.65)',
+  // Full-bleed dark moments (redemption success screen, the Visitor "become a
+  // member" promo card) — Espresso doubles as the palette's dark tone.
+  darkBg: '#352A24',
 
-  // Dividers & Accents
-  demoBorder: '#CBD2AC',
-  rowBorder: '#FAFBF6',
+  demoBorder: '#C9D1B3',
+  rowBorder: '#F1ECDF',
 };

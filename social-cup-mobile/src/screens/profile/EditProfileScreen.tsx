@@ -12,6 +12,8 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { BackButton } from '../../components/BackButton';
+import { PillButton } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { NEIGHBORHOODS, PREF_OPTIONS } from '../../data/mockData';
@@ -51,11 +53,9 @@ export const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
-        </TouchableOpacity>
+        <BackButton onPress={() => navigation.goBack()} />
         <Text style={styles.topBarTitle}>Edit profile</Text>
-        <View style={styles.backBtn} />
+        <View style={styles.backBtnSpacer} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -111,8 +111,8 @@ export const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
       </ScrollView>
 
       <View style={styles.footer}>
-        <AnimatedPressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-          {saving ? <ActivityIndicator color={Colors.ink} /> : <Text style={styles.saveBtnText}>Save changes</Text>}
+        <AnimatedPressable style={PillButton.primary} onPress={handleSave} disabled={saving}>
+          {saving ? <ActivityIndicator color={Colors.white} /> : <Text style={PillButton.primaryText}>Save changes</Text>}
         </AnimatedPressable>
       </View>
     </SafeAreaView>
@@ -131,13 +131,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
   },
-  backBtn: {
-    width: 30,
-  },
-  backText: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: Colors.ink,
+  backBtnSpacer: {
+    width: 40,
   },
   topBarTitle: {
     fontSize: 16,
@@ -231,16 +226,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.line,
     backgroundColor: Colors.background,
-  },
-  saveBtn: {
-    backgroundColor: Colors.gold,
-    paddingVertical: 15,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  saveBtnText: {
-    color: Colors.ink,
-    fontSize: 15,
-    fontWeight: '600',
   },
 });

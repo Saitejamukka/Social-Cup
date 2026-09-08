@@ -12,6 +12,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Location from 'expo-location';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { BackButton } from '../../components/BackButton';
+import { PillButton } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { NEIGHBORHOODS, PREF_OPTIONS } from '../../data/mockData';
@@ -87,9 +89,7 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.container}>
         {/* Progress Bar & Back */}
         <View style={styles.topBar}>
-          <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
-            <Text style={styles.backText}>←</Text>
-          </TouchableOpacity>
+          <BackButton onPress={handleBack} />
           <View style={styles.dotsContainer}>
             {[0, 1, 2].map((i) => (
               <View
@@ -180,14 +180,14 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 
               <View style={styles.locationActions}>
                 <AnimatedPressable
-                  style={styles.primaryBtn}
+                  style={PillButton.primary}
                   onPress={handleAllowLocation}
                   disabled={finishing || requestingLocation}
                 >
                   {finishing || requestingLocation ? (
-                    <ActivityIndicator color={Colors.ink} />
+                    <ActivityIndicator color={Colors.white} />
                   ) : (
-                    <Text style={styles.primaryBtnText}>Allow location</Text>
+                    <Text style={PillButton.primaryText}>Allow location</Text>
                   )}
                 </AnimatedPressable>
 
@@ -202,8 +202,8 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
         {/* Bottom Continue Button for Steps 0-1, or after declining location */}
         {(step < 2 || locationAllowed === false) && (
           <View style={styles.footer}>
-            <AnimatedPressable style={styles.primaryBtn} onPress={handleNext} disabled={finishing}>
-              {finishing ? <ActivityIndicator color={Colors.ink} /> : <Text style={styles.primaryBtnText}>Continue</Text>}
+            <AnimatedPressable style={PillButton.primary} onPress={handleNext} disabled={finishing}>
+              {finishing ? <ActivityIndicator color={Colors.white} /> : <Text style={PillButton.primaryText}>Continue</Text>}
             </AnimatedPressable>
           </View>
         )}
@@ -226,14 +226,6 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 20,
     paddingVertical: 14,
-  },
-  backBtn: {
-    padding: 4,
-  },
-  backText: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: Colors.ink,
   },
   dotsContainer: {
     flex: 1,
@@ -350,17 +342,6 @@ const styles = StyleSheet.create({
     width: '100%',
     gap: 10,
     marginTop: 14,
-  },
-  primaryBtn: {
-    backgroundColor: Colors.gold,
-    paddingVertical: 15,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  primaryBtnText: {
-    color: Colors.ink,
-    fontSize: 15,
-    fontWeight: '600',
   },
   secondaryBtn: {
     borderWidth: 1,

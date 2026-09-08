@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'rea
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { PillButton } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { api, ApiCafe } from '../../api/client';
@@ -68,8 +69,8 @@ export const RedeemSuccessScreen: React.FC<Props> = ({ route, navigation }) => {
             </>
           )}
 
-          <AnimatedPressable style={styles.primaryBtn} onPress={handleRate}>
-            <Text style={styles.primaryBtnText}>Rate this drink</Text>
+          <AnimatedPressable style={[PillButton.primary, styles.primaryBtn]} onPress={handleRate}>
+            <Text style={PillButton.primaryText}>Rate this drink</Text>
           </AnimatedPressable>
 
           <TouchableOpacity onPress={handleSkip} style={styles.skipBtn}>
@@ -140,16 +141,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   primaryBtn: {
-    backgroundColor: Colors.gold,
-    paddingVertical: 15,
     paddingHorizontal: 36,
-    borderRadius: 12,
     marginTop: 8,
-  },
-  primaryBtnText: {
-    color: Colors.ink,
-    fontSize: 15,
-    fontWeight: '600',
   },
   skipBtn: {
     padding: 8,

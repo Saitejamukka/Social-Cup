@@ -17,6 +17,7 @@ import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, TabParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { PillButton } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { showAlert } from '../../utils/alert';
@@ -198,10 +199,10 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
               Subscribe to start redeeming drinks with monthly credits.
             </Text>
             <TouchableOpacity
-              style={styles.membershipBtn}
+              style={[PillButton.primary, styles.membershipBtn]}
               onPress={() => navigation.navigate('Membership')}
             >
-              <Text style={styles.membershipBtnText}>See membership</Text>
+              <Text style={PillButton.primaryText}>See membership</Text>
             </TouchableOpacity>
           </FadeSlideIn>
         )}
@@ -414,16 +415,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   membershipBtn: {
-    backgroundColor: Colors.gold,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
     marginTop: 6,
-  },
-  membershipBtnText: {
-    color: Colors.ink,
-    fontSize: 13,
-    fontWeight: '600',
   },
   settingsGroup: {
     backgroundColor: Colors.white,

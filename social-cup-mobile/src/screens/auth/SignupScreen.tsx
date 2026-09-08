@@ -12,6 +12,8 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { BackButton } from '../../components/BackButton';
+import { PillButton } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { ApiError } from '../../api/client';
@@ -98,12 +100,7 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backBtnText}>←</Text>
-        </TouchableOpacity>
+        <BackButton style={styles.backBtn} onPress={() => navigation.goBack()} />
 
         <FadeSlideIn style={styles.header}>
           <Text style={styles.title}>Create your account</Text>
@@ -173,8 +170,8 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
 
         {error && <Text style={styles.errorText}>{error}</Text>}
 
-        <AnimatedPressable style={styles.submitBtn} onPress={handleSubmit} disabled={submitting}>
-          {submitting ? <ActivityIndicator color={Colors.ink} /> : <Text style={styles.submitBtnText}>Create account</Text>}
+        <AnimatedPressable style={[PillButton.primary, styles.submitBtn]} onPress={handleSubmit} disabled={submitting}>
+          {submitting ? <ActivityIndicator color={Colors.white} /> : <Text style={PillButton.primaryText}>Create account</Text>}
         </AnimatedPressable>
 
         <View style={styles.footerRow}>
@@ -198,13 +195,7 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   backBtn: {
-    paddingVertical: 8,
     alignSelf: 'flex-start',
-  },
-  backBtnText: {
-    fontSize: 22,
-    color: Colors.ink,
-    fontWeight: '600',
   },
   header: {
     gap: 6,
@@ -292,16 +283,7 @@ const styles = StyleSheet.create({
     color: Colors.danger,
   },
   submitBtn: {
-    backgroundColor: Colors.gold,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
     marginTop: 6,
-  },
-  submitBtnText: {
-    color: Colors.ink,
-    fontSize: 15,
-    fontWeight: '600',
   },
   footerRow: {
     flexDirection: 'row',

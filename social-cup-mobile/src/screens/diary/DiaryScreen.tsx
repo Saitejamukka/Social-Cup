@@ -13,6 +13,7 @@ import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, TabParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { PillButton } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { FadeSlideIn } from '../../components/FadeSlideIn';
@@ -52,10 +53,10 @@ export const DiaryScreen: React.FC<Props> = ({ navigation }) => {
               Rate a drink to start your personal coffee diary.
             </Text>
             <AnimatedPressable
-              style={styles.exploreBtn}
+              style={[PillButton.primary, styles.exploreBtn]}
               onPress={() => navigation.navigate('DiscoverTab')}
             >
-              <Text style={styles.exploreBtnText}>Explore cafes</Text>
+              <Text style={PillButton.primaryText}>Explore cafes</Text>
             </AnimatedPressable>
           </FadeSlideIn>
         ) : (
@@ -192,15 +193,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   exploreBtn: {
-    backgroundColor: Colors.gold,
-    paddingVertical: 12,
-    paddingHorizontal: 22,
-    borderRadius: 10,
+    paddingHorizontal: 28,
     marginTop: 6,
-  },
-  exploreBtnText: {
-    color: Colors.ink,
-    fontSize: 13,
-    fontWeight: '600',
   },
 });

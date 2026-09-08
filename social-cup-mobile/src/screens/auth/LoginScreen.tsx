@@ -11,7 +11,9 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { BackButton } from '../../components/BackButton';
 import { Fonts } from '../../theme/typography';
+import { PillButton } from '../../theme/buttons';
 import { useAppStore } from '../../store/useAppStore';
 import { api, ApiError } from '../../api/client';
 import { useGoogleAuthRequest, extractGoogleIdToken } from '../../auth/googleAuth';
@@ -119,12 +121,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backBtnText}>←</Text>
-        </TouchableOpacity>
+        <BackButton style={styles.backBtn} onPress={() => navigation.goBack()} />
 
         <FadeSlideIn style={styles.header}>
           <Text style={styles.title}>Welcome back</Text>
@@ -183,8 +180,8 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
         {error && <Text style={styles.errorText}>{error}</Text>}
 
-        <AnimatedPressable style={styles.submitBtn} onPress={handleLogin} disabled={submitting}>
-          {submitting ? <ActivityIndicator color={Colors.ink} /> : <Text style={styles.submitBtnText}>Log in</Text>}
+        <AnimatedPressable style={[PillButton.primary, styles.submitBtn]} onPress={handleLogin} disabled={submitting}>
+          {submitting ? <ActivityIndicator color={Colors.white} /> : <Text style={PillButton.primaryText}>Log in</Text>}
         </AnimatedPressable>
       </View>
     </SafeAreaView>
@@ -201,13 +198,7 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   backBtn: {
-    paddingVertical: 8,
     alignSelf: 'flex-start',
-  },
-  backBtnText: {
-    fontSize: 22,
-    color: Colors.ink,
-    fontWeight: '600',
   },
   header: {
     marginTop: 8,
@@ -301,15 +292,6 @@ const styles = StyleSheet.create({
     color: Colors.danger,
   },
   submitBtn: {
-    backgroundColor: Colors.gold,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
     marginTop: 10,
-  },
-  submitBtnText: {
-    color: Colors.ink,
-    fontSize: 15,
-    fontWeight: '600',
   },
 });

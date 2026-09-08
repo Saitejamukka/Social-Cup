@@ -10,6 +10,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { PillButton } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { FAIL_REASONS } from '../../data/mockData';
 import { PopIn } from '../../components/PopIn';
@@ -34,10 +35,10 @@ export const RedeemFailedScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.message}>{currentReason.message}</Text>
 
           <AnimatedPressable
-            style={styles.retryBtn}
+            style={[PillButton.primary, styles.retryBtn]}
             onPress={() => navigation.navigate('CafeDetail', { cafeId })}
           >
-            <Text style={styles.retryBtnText}>Try again</Text>
+            <Text style={PillButton.primaryText}>Try again</Text>
           </AnimatedPressable>
         </FadeSlideIn>
       </ScrollView>
@@ -84,15 +85,7 @@ const styles = StyleSheet.create({
     maxWidth: 280,
   },
   retryBtn: {
-    backgroundColor: Colors.gold,
-    paddingVertical: 15,
     paddingHorizontal: 36,
-    borderRadius: 12,
     marginTop: 14,
-  },
-  retryBtnText: {
-    color: Colors.ink,
-    fontSize: 15,
-    fontWeight: '600',
   },
 });

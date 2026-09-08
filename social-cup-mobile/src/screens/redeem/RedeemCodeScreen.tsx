@@ -11,6 +11,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import QRCode from 'react-native-qrcode-svg';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { BackButton } from '../../components/BackButton';
 import { useAppStore } from '../../store/useAppStore';
 import { api } from '../../api/client';
 import { FadeSlideIn } from '../../components/FadeSlideIn';
@@ -86,9 +87,7 @@ export const RedeemCodeScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <TouchableOpacity style={styles.backBtn} onPress={handleCancel}>
-          <Text style={styles.backBtnText}>←</Text>
-        </TouchableOpacity>
+        <BackButton style={styles.backBtn} onPress={handleCancel} />
 
         <FadeSlideIn style={styles.content}>
           <Text style={styles.headerSubtitle}>Show this to your barista</Text>
@@ -129,13 +128,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   backBtn: {
-    paddingVertical: 4,
     alignSelf: 'flex-start',
-  },
-  backBtnText: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: Colors.ink,
   },
   content: {
     flex: 1,

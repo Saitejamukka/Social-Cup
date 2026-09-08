@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicat
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { PillButton } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { PopIn } from '../../components/PopIn';
 import { FadeSlideIn } from '../../components/FadeSlideIn';
@@ -42,10 +43,10 @@ export const VerifyEmailScreen: React.FC<Props> = ({ navigation }) => {
         </FadeSlideIn>
 
         <AnimatedPressable
-          style={styles.primaryBtn}
+          style={[PillButton.primary, styles.primaryBtn]}
           onPress={() => navigation.navigate('Onboarding')}
         >
-          <Text style={styles.primaryBtnText}>Continue</Text>
+          <Text style={PillButton.primaryText}>Continue</Text>
         </AnimatedPressable>
 
         <TouchableOpacity style={styles.resendBtn} onPress={handleResend} disabled={resending}>
@@ -102,16 +103,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   primaryBtn: {
-    backgroundColor: Colors.gold,
-    paddingVertical: 15,
     paddingHorizontal: 40,
-    borderRadius: 12,
     marginTop: 12,
-  },
-  primaryBtnText: {
-    color: Colors.ink,
-    fontSize: 15,
-    fontWeight: '600',
   },
   resendBtn: {
     marginTop: 8,

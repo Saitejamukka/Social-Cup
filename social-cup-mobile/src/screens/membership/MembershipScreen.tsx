@@ -10,6 +10,8 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { BackButton } from '../../components/BackButton';
+import { PillButton } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { FadeSlideIn } from '../../components/FadeSlideIn';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
@@ -27,12 +29,7 @@ export const MembershipScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backBtnText}>←</Text>
-        </TouchableOpacity>
+        <BackButton style={styles.backBtn} onPress={() => navigation.goBack()} />
 
         <FadeSlideIn style={styles.header}>
           <Text style={styles.title}>Social Cup Membership</Text>
@@ -67,10 +64,10 @@ export const MembershipScreen: React.FC<Props> = ({ navigation }) => {
         </Text>
 
         <AnimatedPressable
-          style={styles.subscribeBtn}
+          style={[PillButton.primary, styles.subscribeBtn]}
           onPress={() => navigation.navigate('Payment')}
         >
-          <Text style={styles.subscribeBtnText}>Subscribe — $24.99/mo</Text>
+          <Text style={PillButton.primaryText}>Subscribe — $24.99/mo</Text>
         </AnimatedPressable>
       </ScrollView>
     </SafeAreaView>
@@ -87,13 +84,7 @@ const styles = StyleSheet.create({
     gap: 22,
   },
   backBtn: {
-    paddingVertical: 4,
     alignSelf: 'flex-start',
-  },
-  backBtnText: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: Colors.ink,
   },
   header: {
     gap: 8,
@@ -166,15 +157,6 @@ const styles = StyleSheet.create({
     color: Colors.mute,
   },
   subscribeBtn: {
-    backgroundColor: Colors.gold,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
     marginTop: 8,
-  },
-  subscribeBtnText: {
-    color: Colors.ink,
-    fontSize: 15,
-    fontWeight: '600',
   },
 });

@@ -12,6 +12,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { BackButton } from '../../components/BackButton';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { api, ApiCafe } from '../../api/client';
@@ -46,12 +47,7 @@ export const RedeemPickerScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backBtnText}>←</Text>
-        </TouchableOpacity>
+        <BackButton style={styles.backBtn} onPress={() => navigation.goBack()} />
 
         <FadeSlideIn style={styles.header}>
           <Text style={styles.title}>Redeem at {cafe.name}</Text>
@@ -112,13 +108,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   backBtn: {
-    paddingVertical: 4,
     alignSelf: 'flex-start',
-  },
-  backBtnText: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: Colors.ink,
   },
   header: {
     gap: 4,

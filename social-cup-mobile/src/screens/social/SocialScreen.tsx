@@ -10,6 +10,8 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
+import { BackButton } from '../../components/BackButton';
+import { PillButton } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { CAFES, CONNECTIONS, INITIAL_ACTIVITY } from '../../data/mockData';
@@ -42,12 +44,7 @@ export const SocialScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.container}>
         {/* Top Header */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backBtnText}>←</Text>
-          </TouchableOpacity>
+          <BackButton onPress={() => navigation.goBack()} />
           <Text style={styles.title}>Connections</Text>
         </View>
 
@@ -199,10 +196,10 @@ export const SocialScreen: React.FC<Props> = ({ navigation }) => {
               )}
 
               <AnimatedPressable
-                style={styles.inviteBtn}
+                style={PillButton.primary}
                 onPress={sendMeetupInvite}
               >
-                <Text style={styles.inviteBtnText}>Send invite</Text>
+                <Text style={PillButton.primaryText}>Send invite</Text>
               </AnimatedPressable>
             </FadeSlideIn>
           )}
@@ -226,14 +223,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-  },
-  backBtn: {
-    padding: 4,
-  },
-  backBtnText: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: Colors.ink,
   },
   title: {
     fontSize: 20,
@@ -428,16 +417,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.success,
     textAlign: 'center',
-  },
-  inviteBtn: {
-    backgroundColor: Colors.gold,
-    paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  inviteBtnText: {
-    color: Colors.ink,
-    fontSize: 14,
-    fontWeight: '600',
   },
 });
