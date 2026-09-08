@@ -47,6 +47,9 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const isMember = user?.accountStatus === 'MEMBER';
+  // Never in a real build, and hidden by default even in dev — set
+  // EXPO_PUBLIC_SHOW_DEV_TOOLS=true in .env to bring the QA toggles back locally.
+  const showDevTools = __DEV__ && process.env.EXPO_PUBLIC_SHOW_DEV_TOOLS === 'true';
 
   const statusLabel =
     user?.accountStatus === 'MEMBER'
@@ -242,28 +245,32 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Developer preview settings — exercise the PRD's required screen states */}
-        <View style={styles.demoControlsBox}>
-          <Text style={styles.demoHeading}>DEVELOPER PREVIEW SETTINGS</Text>
-          <View style={styles.toggleRow}>
-            <View style={styles.simItem}>
-              <Text style={styles.simLabel}>Location</Text>
-              <TouchableOpacity
-                style={styles.simBtn}
-                onPress={() => setLocationAllowed(locationAllowed === false ? true : false)}
-              >
-                <Text style={styles.simBtnText}>{locationAllowed === false ? 'Off' : 'On'}</Text>
-              </TouchableOpacity>
-            </View>
+        {/* Developer preview settings — exercise the PRD's required screen states.
+            Opt-in (EXPO_PUBLIC_SHOW_DEV_TOOLS=true in .env) and dev-build-only, so a
+            stakeholder demo run via `npm run web` never shows this by default. */}
+        {showDevTools && (
+          <View style={styles.demoControlsBox}>
+            <Text style={styles.demoHeading}>DEVELOPER PREVIEW SETTINGS</Text>
+            <View style={styles.toggleRow}>
+              <View style={styles.simItem}>
+                <Text style={styles.simLabel}>Location</Text>
+                <TouchableOpacity
+                  style={styles.simBtn}
+                  onPress={() => setLocationAllowed(locationAllowed === false ? true : false)}
+                >
+                  <Text style={styles.simBtnText}>{locationAllowed === false ? 'Off' : 'On'}</Text>
+                </TouchableOpacity>
+              </View>
 
-            <View style={styles.simItem}>
-              <Text style={styles.simLabel}>Network</Text>
-              <TouchableOpacity style={styles.simBtn} onPress={() => setOfflineSim(!offlineSim)}>
-                <Text style={styles.simBtnText}>{offlineSim ? 'Offline' : 'Online'}</Text>
-              </TouchableOpacity>
+              <View style={styles.simItem}>
+                <Text style={styles.simLabel}>Network</Text>
+                <TouchableOpacity style={styles.simBtn} onPress={() => setOfflineSim(!offlineSim)}>
+                  <Text style={styles.simBtnText}>{offlineSim ? 'Offline' : 'Online'}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        )}
 
         {/* Logout / Delete */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
