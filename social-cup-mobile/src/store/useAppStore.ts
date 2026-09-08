@@ -17,6 +17,11 @@ interface AppState {
   // Kicks off a real Stripe subscription. Returns PaymentSheet params to present, or
   // `{ reactivated: true }` if it just undid a pending cancellation with nothing to pay.
   startSubscription: () => Promise<{ reactivated: true } | StripeSubscribeParams>;
+  // Stripe confirms a payment client-side immediately, but our own accountStatus/credits
+  // only update once Stripe's webhook reaches the backend a moment later — poll until that
+  // catches up (or give up after ~8s) instead of showing a stale Visitor state right after
+  // a successful payment.
+  waitForMembership: () => Promise<boolean>;
   cancelMembership: () => Promise<void>;
   deleteAccount: () => Promise<void>;
 
@@ -54,6 +59,11 @@ interface AppState {
   // permission was granted, so a member can always fall back to the default order.
   distanceSortEnabled: boolean;
   setDistanceSortEnabled: (enabled: boolean) => void;
+  // Real device connectivity, kept in sync by a NetInfo listener set up once in
+  // RootNavigator. offlineSim is a manual override on top of this for exercising the
+  // PRD's required "offline" screen state on a QA build without physically disconnecting.
+  isConnected: boolean;
+  setIsConnected: (connected: boolean) => void;
   offlineSim: boolean;
   setOfflineSim: (offline: boolean) => void;
   savedCafeIds: string[];
@@ -172,6 +182,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     return result;
   },
 
+  waitForMembership: async () => {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      await get().refreshUser();
+      if (get().user?.accountStatus === 'MEMBER') return true;
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    }
+    return false;
+  },
+
   cancelMembership: async () => {
     await api.cancelMembership();
     await get().refreshUser();
@@ -241,6 +260,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   setUserCoords: (userCoords) => set({ userCoords }),
   distanceSortEnabled: true,
   setDistanceSortEnabled: (distanceSortEnabled) => set({ distanceSortEnabled }),
+  isConnected: true,
+  setIsConnected: (isConnected) => set({ isConnected }),
   offlineSim: false,
   setOfflineSim: (offlineSim) => set({ offlineSim }),
   savedCafeIds: [],

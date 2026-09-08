@@ -14,7 +14,7 @@ import { AnimatedPressable } from '../../components/AnimatedPressable';
 type Props = NativeStackScreenProps<RootStackParamList, 'Payment'>;
 
 export const PaymentScreen: React.FC<Props> = ({ navigation }) => {
-  const [stage, setStage] = useState<'loading' | 'ready' | 'processing' | 'success'>('loading');
+  const [stage, setStage] = useState<'loading' | 'ready' | 'processing' | 'confirming' | 'success'>('loading');
   const [error, setError] = useState<string | null>(null);
   const startSubscription = useAppStore((s) => s.startSubscription);
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
@@ -67,7 +67,11 @@ export const PaymentScreen: React.FC<Props> = ({ navigation }) => {
       setStage('ready');
       return;
     }
-    await useAppStore.getState().refreshUser();
+    // Stripe confirms the payment client-side immediately, but our accountStatus/credits
+    // only update once Stripe's webhook reaches the backend a moment later — poll until
+    // that catches up instead of showing a stale Visitor state right after paying.
+    setStage('confirming');
+    await useAppStore.getState().waitForMembership();
     setStage('success');
   };
 
@@ -84,7 +88,7 @@ export const PaymentScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         )}
 
-        {(stage === 'loading' || stage === 'ready' || stage === 'processing') && (
+        {(stage === 'loading' || stage === 'ready' || stage === 'processing' || stage === 'confirming') && (
           <FadeSlideIn style={styles.formContainer}>
             <Text style={styles.title}>Membership</Text>
             <Text style={styles.subtitle}>$24.99/month · 30 drink credits</Text>
@@ -99,10 +103,15 @@ export const PaymentScreen: React.FC<Props> = ({ navigation }) => {
               <AnimatedPressable
                 style={styles.payBtn}
                 onPress={handlePay}
-                disabled={stage === 'processing'}
+                disabled={stage === 'processing' || stage === 'confirming'}
               >
                 {stage === 'processing' ? (
                   <ActivityIndicator color={Colors.ink} />
+                ) : stage === 'confirming' ? (
+                  <>
+                    <ActivityIndicator color={Colors.ink} />
+                    <Text style={styles.payBtnText}>Confirming your membership…</Text>
+                  </>
                 ) : (
                   <Text style={styles.payBtnText}>Subscribe — $24.99/month</Text>
                 )}
