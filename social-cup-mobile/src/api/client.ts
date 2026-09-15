@@ -1,13 +1,30 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 // Android emulators can't reach the host machine via localhost — 10.0.2.2 is the
 // documented loopback alias. iOS simulator and web both resolve localhost fine.
 const DEFAULT_API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:4000' : 'http://localhost:4000';
-// EXPO_PUBLIC_API_URL (a LAN IP) only applies to a physical device on the same
-// Wi-Fi — it goes stale whenever the dev machine changes networks. A web build
-// runs in a browser on this same machine, so it always uses localhost instead.
-const API_URL = (Platform.OS !== 'web' && process.env.EXPO_PUBLIC_API_URL) || DEFAULT_API_URL;
+
+// A hardcoded LAN IP in EXPO_PUBLIC_API_URL goes stale the moment the dev machine
+// changes networks (it did, twice). Instead, derive the backend host from the same
+// address the device already used to load this JS bundle from Metro — Constants
+// .expoConfig.hostUri is e.g. "192.168.12.69:8081", so this self-updates every time
+// without ever needing to be edited by hand. Falls back to EXPO_PUBLIC_API_URL (for
+// setups without a dev server, e.g. a standalone build) and then DEFAULT_API_URL.
+function resolveApiUrl(): string {
+  if (Platform.OS === 'web') return 'http://localhost:4000';
+
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    const host = hostUri.split(':')[0];
+    if (host) return `http://${host}:4000`;
+  }
+
+  return process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL;
+}
+
+const API_URL = resolveApiUrl();
 
 const TOKEN_KEY = 'sc_token';
 let cachedToken: string | null | undefined;

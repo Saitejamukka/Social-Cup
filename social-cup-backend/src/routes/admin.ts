@@ -331,7 +331,8 @@ router.post('/redemptions/:id/void', async (req: AuthedRequest, res: Response) =
 
 // GET /api/admin/payouts?period=2026-08
 router.get('/payouts', async (req: AuthedRequest, res: Response) => {
-  const period = (req.query.period as string) || new Date().toISOString().slice(0, 7);
+  const now = new Date();
+  const period = (req.query.period as string) || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const [year, month] = period.split('-').map(Number);
   const start = new Date(year, month - 1, 1);
   const end = new Date(year, month, 1);

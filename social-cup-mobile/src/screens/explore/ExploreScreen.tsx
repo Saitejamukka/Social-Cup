@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,10 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
+  FlatList,
   ActivityIndicator,
 } from 'react-native';
-import { CompositeScreenProps } from '@react-navigation/native';
+import { CompositeScreenProps, useFocusEffect } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, TabParamList } from '../../navigation/types';
@@ -29,9 +30,24 @@ export const ExploreScreen: React.FC<Props> = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedNeighborhood, setSelectedNeighborhood] = useState('All');
   const [activeTab, setActiveTab] = useState<'all' | 'saved'>('all');
-  const { savedCafeIds, cafes, cafesLoading, fetchCafes } = useAppStore();
+  const { savedCafeIds, cafes, cafesLoading, fetchCafes, pendingExploreQuery, setPendingExploreQuery } = useAppStore();
 
   const neighborhoodList = ['All', ...NEIGHBORHOODS];
+
+  // A Discover-screen category tile (e.g. "Rooftop Cafés") stashes its search term here
+  // right before navigating in — pick it up each time this tab gains focus, then clear
+  // it so a later manual visit to Explore doesn't re-apply a stale filter.
+  useFocusEffect(
+    useCallback(() => {
+      if (pendingExploreQuery !== null) {
+        setSearchQuery(pendingExploreQuery);
+        setSelectedNeighborhood('All');
+        setActiveTab('all');
+        setPendingExploreQuery(null);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pendingExploreQuery])
+  );
 
   // Server-backed filtering: the PRD's neighborhood filter + name search run on the API.
   useEffect(() => {
@@ -130,35 +146,41 @@ export const ExploreScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Results List */}
-        <ScrollView contentContainerStyle={styles.listContent}>
-          {cafesLoading ? (
-            <ActivityIndicator style={{ marginTop: 40 }} color={Colors.gold} />
-          ) : filtered.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>☕</Text>
-              <Text style={styles.emptyTitle}>No cafes match</Text>
-              <Text style={styles.emptySub}>
-                Try clearing your search or neighborhood filters.
-              </Text>
-              <TouchableOpacity style={styles.clearBtn} onPress={clearFilters}>
-                <Text style={styles.clearBtnText}>Clear filters</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.cardList}>
-              {filtered.map((cafe, i) => (
-                <FadeSlideIn key={cafe.id} delay={Math.min(i * 40, 240)}>
-                  <CafeCard
-                    cafe={cafe}
-                    onPress={() => handleSelectCafe(cafe.id)}
-                    showSaveButton
-                  />
-                </FadeSlideIn>
-              ))}
-            </View>
-          )}
-        </ScrollView>
+        {/* Results List — windowed since this can show the full catalog (dozens of
+            cafes) with no filter applied; a plain ScrollView+map here mounted every
+            card and its image at once, which is what made real-device scrolling janky. */}
+        {cafesLoading ? (
+          <ActivityIndicator style={{ marginTop: 40 }} color={Colors.gold} />
+        ) : (
+          <FlatList
+            data={filtered}
+            keyExtractor={(cafe) => cafe.id}
+            contentContainerStyle={styles.listContent}
+            renderItem={({ item, index }) => (
+              <FadeSlideIn delay={Math.min(index * 40, 240)}>
+                <CafeCard cafe={item} onPress={() => handleSelectCafe(item.id)} showSaveButton />
+              </FadeSlideIn>
+            )}
+            ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyIcon}>☕</Text>
+                <Text style={styles.emptyTitle}>No cafes match</Text>
+                <Text style={styles.emptySub}>
+                  Try clearing your search or neighborhood filters.
+                </Text>
+                <TouchableOpacity style={styles.clearBtn} onPress={clearFilters}>
+                  <Text style={styles.clearBtnText}>Clear filters</Text>
+                </TouchableOpacity>
+              </View>
+            }
+            initialNumToRender={8}
+            maxToRenderPerBatch={8}
+            updateCellsBatchingPeriod={50}
+            windowSize={7}
+            removeClippedSubviews
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -252,9 +274,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 24,
-  },
-  cardList: {
-    gap: 12,
   },
   emptyState: {
     alignItems: 'center',

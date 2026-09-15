@@ -68,6 +68,11 @@ interface AppState {
   setOfflineSim: (offline: boolean) => void;
   savedCafeIds: string[];
   toggleSaveCafe: (cafeId: string) => void;
+  // Set right before navigating from a Discover-screen category tile into the Explore
+  // tab, so Explore can pick it up as its initial search term — cleared once Explore
+  // consumes it, so returning to Explore later doesn't re-apply a stale filter.
+  pendingExploreQuery: string | null;
+  setPendingExploreQuery: (query: string | null) => void;
   // Connections/meetup are Phase 2 (out of scope) per the PRD — kept as inert local
   // state only so the existing Social screen still renders; never backed by the API.
   connectionsSelected: Record<string, boolean>;
@@ -265,6 +270,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   offlineSim: false,
   setOfflineSim: (offlineSim) => set({ offlineSim }),
   savedCafeIds: [],
+  pendingExploreQuery: null,
+  setPendingExploreQuery: (pendingExploreQuery) => set({ pendingExploreQuery }),
   toggleSaveCafe: (cafeId) =>
     set((state) => ({
       savedCafeIds: state.savedCafeIds.includes(cafeId)

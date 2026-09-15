@@ -174,10 +174,9 @@ router.get('/today', deviceAuth, async (req: DeviceAuthedRequest, res: Response)
 // GET /api/barista/earnings?cafeId=...  — this cafe's current-month totals only.
 router.get('/earnings', deviceAuth, async (req: DeviceAuthedRequest, res: Response) => {
   const cafeId = req.cafeId!;
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
-  const period = startOfMonth.toISOString().slice(0, 7);
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const period = `${startOfMonth.getFullYear()}-${String(startOfMonth.getMonth() + 1).padStart(2, '0')}`;
 
   const [cafe, redemptions, payout] = await Promise.all([
     prisma.cafe.findUnique({ where: { id: cafeId } }),

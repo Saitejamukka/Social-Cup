@@ -21,6 +21,7 @@ import { api, ApiCafe } from '../../api/client';
 import { showAlert } from '../../utils/alert';
 import { FadeSlideIn } from '../../components/FadeSlideIn';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
+import { useDragToScroll } from '../../utils/useDragToScroll';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CafeDetail'>;
 
@@ -34,6 +35,7 @@ export const CafeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   // much narrower than the real browser window, so sizing the gallery image off the
   // window width badly over-zoomed it once resizeMode="cover" scaled to fill that width.
   const [galleryWidth, setGalleryWidth] = useState(0);
+  const galleryDrag = useDragToScroll();
 
   useEffect(() => {
     if (!cafe) {
@@ -75,7 +77,7 @@ export const CafeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Photo Gallery Header Carousel */}
         <View style={styles.galleryWrapper} onLayout={(e) => setGalleryWidth(e.nativeEvent.layout.width)}>
           {galleryWidth > 0 && (
-            <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
+            <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} {...galleryDrag}>
               {galleryImages.map((imgUri, idx) => (
                 <Image
                   key={idx}

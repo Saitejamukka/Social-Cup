@@ -1,0 +1,16 @@
+diff --git a/node_modules/react-native-safe-area-context/android/src/main/jni/CMakeLists.txt b/node_modules/react-native-safe-area-context/android/src/main/jni/CMakeLists.txt
+index 52450f0..6ae6c85 100644
+--- a/node_modules/react-native-safe-area-context/android/src/main/jni/CMakeLists.txt
++++ b/node_modules/react-native-safe-area-context/android/src/main/jni/CMakeLists.txt
+@@ -59,6 +59,11 @@ else()
+   )
+ endif()
+ 
++target_link_libraries(
++  ${LIB_TARGET_NAME}
++  c++_shared
++)
++
+ target_include_directories(
+   ${CMAKE_PROJECT_NAME}
+   PUBLIC

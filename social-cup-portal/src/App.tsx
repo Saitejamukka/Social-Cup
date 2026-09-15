@@ -643,7 +643,9 @@ function MenuTab() {
   const [cafes, setCafes] = useState<any[]>([]);
   const [selectedCafeId, setSelectedCafeId] = useState('');
   const [addingDrink, setAddingDrink] = useState(false);
-  const [newDrink, setNewDrink] = useState({ name: '', retailPrice: 6, creditsCost: 6 });
+  const [newDrink, setNewDrink] = useState({ name: '', retailPrice: 6, creditsCost: 6, image: '' });
+  const [editingImageId, setEditingImageId] = useState<string | null>(null);
+  const [imageDraft, setImageDraft] = useState('');
 
   const [calcRetail, setCalcRetail] = useState(6.0);
   const [calcCredits, setCalcCredits] = useState(6);
@@ -652,9 +654,12 @@ function MenuTab() {
   const refresh = useCallback(() => {
     api.adminListCafes().then((r) => {
       setCafes(r.cafes);
-      if (!selectedCafeId && r.cafes[0]) setSelectedCafeId(r.cafes[0].id);
+      // Functional update reads the *current* selection at call time, rather than
+      // whatever selectedCafeId was when this useCallback closure was first created
+      // (an empty string) — otherwise every refresh() (e.g. after any edit) would
+      // wrongly treat nothing as selected and snap back to the alphabetically-first cafe.
+      setSelectedCafeId((prev) => prev || r.cafes[0]?.id || '');
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(refresh, [refresh]);
@@ -675,8 +680,19 @@ function MenuTab() {
   const submitNewDrink = async () => {
     if (!newDrink.name) return;
     await api.adminCreateDrink(selectedCafeId, newDrink);
-    setNewDrink({ name: '', retailPrice: 6, creditsCost: 6 });
+    setNewDrink({ name: '', retailPrice: 6, creditsCost: 6, image: '' });
     setAddingDrink(false);
+    refresh();
+  };
+
+  const startEditingImage = (d: any) => {
+    setEditingImageId(d.id);
+    setImageDraft(d.image || '');
+  };
+
+  const saveImage = async (drinkId: string) => {
+    await api.adminUpdateDrink(drinkId, { image: imageDraft.trim() || null });
+    setEditingImageId(null);
     refresh();
   };
 
@@ -693,24 +709,54 @@ function MenuTab() {
 
       <div style={{ display: 'flex', gap: '20px' }}>
         <div style={{ flex: 1.4, ...card, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1fr 1fr 1fr 0.8fr', padding: '12px 16px', backgroundColor: '#F9F5EA', fontSize: '10px', fontWeight: 700, color: '#6F6555', textTransform: 'uppercase' }}>
-            <div>Drink</div><div>Retail</div><div>Credits</div><div>Signature</div><div>Enabled</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '0.6fr 1.6fr 1fr 1fr 1fr 0.8fr', padding: '12px 16px', backgroundColor: '#F9F5EA', fontSize: '10px', fontWeight: 700, color: '#6F6555', textTransform: 'uppercase' }}>
+            <div>Photo</div><div>Drink</div><div>Retail</div><div>Credits</div><div>Signature</div><div>Enabled</div>
           </div>
           {drinks.map((d) => (
-            <div key={d.id} style={{ display: 'grid', gridTemplateColumns: '1.8fr 1fr 1fr 1fr 0.8fr', padding: '12px 16px', borderTop: '1px solid #E8EBD9', alignItems: 'center', fontSize: '13px' }}>
-              <div style={{ fontWeight: 600 }}>{d.name}</div>
-              <div>${d.retailPrice.toFixed(2)}</div>
-              <div>{d.creditsCost} cr</div>
+            <div key={d.id} style={{ display: 'grid', gridTemplateColumns: '0.6fr 1.6fr 1fr 1fr 1fr 0.8fr', padding: '12px 16px', borderTop: '1px solid #E8EBD9', alignItems: 'center', fontSize: '13px' }}>
               <div>
-                <button onClick={() => toggleDrinkField(d, 'isSignature')} style={{ background: 'none', border: 'none', fontSize: '16px', cursor: 'pointer', color: d.isSignature ? '#687451' : '#A39C87' }}>
-                  {d.isSignature ? '★' : '☆'}
-                </button>
+                {editingImageId === d.id ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', gridColumn: '1 / -1' }}>
+                    <input
+                      autoFocus
+                      placeholder="Image URL"
+                      value={imageDraft}
+                      onChange={(e) => setImageDraft(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && saveImage(d.id)}
+                      style={{ ...input, fontSize: '11px', padding: '6px 8px' }}
+                    />
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button onClick={() => saveImage(d.id)} style={{ ...primaryBtn, padding: '4px 10px', fontSize: '11px' }}>Save</button>
+                      <button onClick={() => setEditingImageId(null)} style={{ ...secondaryBtn, padding: '4px 10px', fontSize: '11px' }}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => startEditingImage(d)}
+                    title="Click to set photo URL"
+                    style={{ padding: 0, border: '1px solid #DEE3C9', borderRadius: '8px', overflow: 'hidden', width: '44px', height: '44px', cursor: 'pointer', background: d.image ? `url(${d.image}) center/cover no-repeat` : '#F9F5EA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    {!d.image && <span style={{ fontSize: '16px', opacity: 0.4 }}>☕</span>}
+                  </button>
+                )}
               </div>
-              <div>
-                <button onClick={() => toggleDrinkField(d, 'isEnabled')} style={{ background: 'none', border: 'none', fontSize: '16px', cursor: 'pointer', color: d.isEnabled ? '#4F7A3E' : '#A39C87' }}>
-                  {d.isEnabled ? '●' : '○'}
-                </button>
-              </div>
+              {editingImageId !== d.id && (
+                <>
+                  <div style={{ fontWeight: 600 }}>{d.name}</div>
+                  <div>${d.retailPrice.toFixed(2)}</div>
+                  <div>{d.creditsCost} cr</div>
+                  <div>
+                    <button onClick={() => toggleDrinkField(d, 'isSignature')} style={{ background: 'none', border: 'none', fontSize: '16px', cursor: 'pointer', color: d.isSignature ? '#687451' : '#A39C87' }}>
+                      {d.isSignature ? '★' : '☆'}
+                    </button>
+                  </div>
+                  <div>
+                    <button onClick={() => toggleDrinkField(d, 'isEnabled')} style={{ background: 'none', border: 'none', fontSize: '16px', cursor: 'pointer', color: d.isEnabled ? '#4F7A3E' : '#A39C87' }}>
+                      {d.isEnabled ? '●' : '○'}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           ))}
 
@@ -722,6 +768,7 @@ function MenuTab() {
                 <input placeholder="Drink name" value={newDrink.name} onChange={(e) => setNewDrink({ ...newDrink, name: e.target.value })} style={{ ...input, width: '160px' }} />
                 <input type="number" step="0.25" placeholder="Retail $" value={newDrink.retailPrice} onChange={(e) => setNewDrink({ ...newDrink, retailPrice: Number(e.target.value) })} style={{ ...input, width: '90px' }} />
                 <input type="number" placeholder="Credits" value={newDrink.creditsCost} onChange={(e) => setNewDrink({ ...newDrink, creditsCost: Number(e.target.value) })} style={{ ...input, width: '80px' }} />
+                <input placeholder="Photo URL (optional)" value={newDrink.image} onChange={(e) => setNewDrink({ ...newDrink, image: e.target.value })} style={{ ...input, width: '200px' }} />
                 <button onClick={submitNewDrink} style={primaryBtn}>Save</button>
                 <button onClick={() => setAddingDrink(false)} style={secondaryBtn}>Cancel</button>
               </div>

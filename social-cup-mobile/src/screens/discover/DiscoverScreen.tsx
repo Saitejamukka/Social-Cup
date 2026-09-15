@@ -6,6 +6,7 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
+  FlatList,
   Image,
   ActivityIndicator,
 } from 'react-native';
@@ -19,11 +20,46 @@ import { useAppStore } from '../../store/useAppStore';
 import { CafeCard } from '../../components/CafeCard';
 import { FadeSlideIn } from '../../components/FadeSlideIn';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
+import { useDragToScroll } from '../../utils/useDragToScroll';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'DiscoverTab'>,
   NativeStackScreenProps<RootStackParamList>
 >;
+
+// Card width + gap define the snap interval so each swipe settles exactly
+// one card over, with the image sliding continuously along with the drag.
+const CARD_GAP = 12;
+const FEATURED_CARD_WIDTH = 190;
+const SIGNATURE_CARD_WIDTH = 130;
+// The catalog can grow well past what a "teaser" row should ever show —
+// unbounded here meant rendering dozens of unvirtualized cards in a plain
+// horizontal ScrollView, which is what was causing the lag on real devices.
+const MAX_SIGNATURE_DRINKS = 12;
+const ITEM_GAP = 12;
+
+const CATEGORY_TILE_WIDTH = 148;
+const CATEGORY_GAP = 12;
+
+// Each category maps to a `search` term that already matches a curated set of
+// cafes' vibeTags on the backend (see admin.ts's name/vibeTags search) — tapping
+// a tile jumps to Explore pre-filtered by it rather than filtering client-side,
+// so it stays consistent with every other search entry point in the app.
+const CATEGORIES: { label: string; query: string; image: string }[] = [
+  { label: 'Rooftop Cafés', query: 'rooftop', image: 'https://images.unsplash.com/photo-1533777857889-4be7c70b33f7?w=400&auto=format&fit=crop&q=80' },
+  { label: 'Comfy Cafés', query: 'comfy', image: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&auto=format&fit=crop&q=80' },
+  { label: 'Best in Town', query: 'best in town', image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&auto=format&fit=crop&q=80' },
+  { label: 'Dine Under Trees', query: 'dine under trees', image: 'https://images.unsplash.com/photo-1521401830884-6c03c1c87ebb?w=400&auto=format&fit=crop&q=80' },
+  { label: 'Work & WiFi', query: 'work & wifi', image: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=400&auto=format&fit=crop&q=80' },
+  { label: 'Late Night', query: 'late night', image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&auto=format&fit=crop&q=80' },
+  { label: 'Pet Friendly', query: 'pet friendly', image: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400&auto=format&fit=crop&q=80' },
+  { label: 'Instagrammable', query: 'instagrammable', image: 'https://images.unsplash.com/photo-1524712245354-2c4e5e7121c0?w=400&auto=format&fit=crop&q=80' },
+];
+// Rendered as stacked pairs so the grid reads as 2 rows that scroll horizontally
+// together, matching the reference layout.
+const CATEGORY_COLUMNS = Array.from({ length: Math.ceil(CATEGORIES.length / 2) }, (_, i) =>
+  CATEGORIES.slice(i * 2, i * 2 + 2)
+);
 
 export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
   const {
@@ -38,7 +74,14 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
     cafes,
     cafesLoading,
     fetchCafes,
+    setPendingExploreQuery,
   } = useAppStore();
+
+  // Separate instances so dragging one carousel's DOM node never gets
+  // confused with the other's on web.
+  const featuredDrag = useDragToScroll();
+  const signatureDrag = useDragToScroll();
+  const categoryDrag = useDragToScroll();
 
   const canSortByDistance = locationAllowed === true && userCoords !== null;
   // offlineSim is a manual QA override on top of real device connectivity — see useAppStore.
@@ -56,6 +99,13 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
   const handleSelectCafe = (cafeId: string) => {
     navigation.navigate('CafeDetail', { cafeId });
   };
+
+  const handleSelectCategory = (query: string) => {
+    setPendingExploreQuery(query);
+    navigation.navigate('ExploreTab');
+  };
+
+  const firstName = user?.name?.trim().split(/\s+/)[0] ?? 'there';
 
   if (isOffline) {
     return (
@@ -83,138 +133,197 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   const featuredCafes = cafes.filter((c) => c.isFeatured).slice(0, 3);
-  const signatureDrinks = cafes.flatMap((c) =>
-    c.drinks.filter((d) => d.isSignature).map((d) => ({ ...d, cafeName: c.name, cafeId: c.id }))
+  const signatureDrinks = cafes
+    .flatMap((c) => c.drinks.filter((d) => d.isSignature).map((d) => ({ ...d, cafeName: c.name, cafeId: c.id })))
+    .slice(0, MAX_SIGNATURE_DRINKS);
+
+  const listHeader = (
+    <View style={styles.headerBlock}>
+      {/* Top Header */}
+      <View style={styles.headerRow}>
+        <View>
+          <Text style={styles.greeting}>Hi there!</Text>
+          <Text style={styles.userName}>{user?.name ?? ''}</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.profileAvatar}
+          onPress={() => navigation.navigate('ProfileTab')}
+        >
+          {user?.photoUrl ? (
+            <Image source={{ uri: user.photoUrl }} style={styles.profileAvatarImage} resizeMode="cover" />
+          ) : (
+            <Text style={styles.avatarGlyph}>👤</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Search trigger */}
+      <TouchableOpacity
+        style={styles.searchBar}
+        onPress={() => navigation.navigate('ExploreTab')}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.searchIcon}>⌕</Text>
+        <Text style={styles.searchPlaceholder}>Search cafes or neighborhoods</Text>
+      </TouchableOpacity>
+
+      {/* What's on your mind — category shortcuts */}
+      <View style={styles.section}>
+        <Text style={styles.mindHeading}>{firstName}, what's on your mind?</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.horizontalScroll}
+          snapToInterval={CATEGORY_TILE_WIDTH + CATEGORY_GAP}
+          snapToAlignment="start"
+          decelerationRate="fast"
+          {...categoryDrag}
+        >
+          {CATEGORY_COLUMNS.map((column, colIdx) => (
+            <View key={colIdx} style={styles.categoryColumn}>
+              {column.map((cat, rowIdx) => (
+                <FadeSlideIn key={cat.label} delay={(colIdx * 2 + rowIdx) * 50}>
+                  <AnimatedPressable
+                    style={styles.categoryTile}
+                    onPress={() => handleSelectCategory(cat.query)}
+                  >
+                    <Text style={styles.categoryLabel} numberOfLines={2}>
+                      {cat.label}
+                    </Text>
+                    <Image source={{ uri: cat.image }} style={styles.categoryImage} resizeMode="cover" />
+                  </AnimatedPressable>
+                </FadeSlideIn>
+              ))}
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Location denied notice */}
+      {locationAllowed === false && (
+        <View style={styles.locationNotice}>
+          <Text style={styles.locationNoticeText}>
+            Location off — showing cafes near {user?.neighborhood ?? 'your area'} instead.
+          </Text>
+        </View>
+      )}
+
+      {/* Distance sort toggle — only meaningful once we actually have coordinates */}
+      {canSortByDistance && (
+        <TouchableOpacity
+          style={styles.distanceToggleRow}
+          onPress={() => setDistanceSortEnabled(!distanceSortEnabled)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.distanceToggleText}>Sort by distance</Text>
+          <View style={[styles.toggleTrack, distanceSortEnabled && styles.toggleTrackActive]}>
+            <View style={[styles.toggleThumb, distanceSortEnabled && styles.toggleThumbActive]} />
+          </View>
+        </TouchableOpacity>
+      )}
+
+      {cafesLoading && cafes.length === 0 ? (
+        <ActivityIndicator style={{ marginTop: 40 }} color={Colors.gold} />
+      ) : (
+        <>
+          {featuredCafes.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Featured cafes</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalScroll}
+                snapToInterval={FEATURED_CARD_WIDTH + CARD_GAP}
+                snapToAlignment="start"
+                decelerationRate="fast"
+                {...featuredDrag}
+              >
+                {featuredCafes.map((cafe, i) => (
+                  <FadeSlideIn key={cafe.id} delay={i * 60}>
+                    <AnimatedPressable style={styles.featuredCard} onPress={() => handleSelectCafe(cafe.id)}>
+                      {cafe.image ? (
+                        <Image source={{ uri: cafe.image }} style={styles.featuredImage} resizeMode="cover" />
+                      ) : (
+                        <View style={styles.featuredImage}>
+                          <Text style={styles.featuredImageText}>☕ {cafe.name}</Text>
+                        </View>
+                      )}
+                      <Text style={styles.featuredName}>{cafe.name}</Text>
+                      <Text style={styles.featuredSub}>{cafe.neighborhood}</Text>
+                    </AnimatedPressable>
+                  </FadeSlideIn>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {signatureDrinks.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Signature drinks</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalScroll}
+                snapToInterval={SIGNATURE_CARD_WIDTH + CARD_GAP}
+                snapToAlignment="start"
+                decelerationRate="fast"
+                {...signatureDrag}
+              >
+                {signatureDrinks.map((drink, i) => (
+                  <FadeSlideIn key={drink.id} delay={i * 60}>
+                    <AnimatedPressable style={styles.signatureCard} onPress={() => handleSelectCafe(drink.cafeId)}>
+                      <View style={styles.signatureImageWrapper}>
+                        {drink.image ? (
+                          <Image source={{ uri: drink.image }} style={styles.signatureImage} resizeMode="cover" />
+                        ) : (
+                          <View style={styles.signatureImage} />
+                        )}
+                        <View style={styles.signatureBadgeContainer}>
+                          <Text style={styles.signatureBadge}>Signature</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.signatureName} numberOfLines={1}>
+                        {drink.name}
+                      </Text>
+                      <Text style={styles.signatureSub}>
+                        {drink.cafeName} · {drink.creditsCost} cr
+                      </Text>
+                    </AnimatedPressable>
+                  </FadeSlideIn>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          <Text style={styles.sectionTitle}>New on Social Cup</Text>
+        </>
+      )}
+    </View>
   );
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        {/* Top Header */}
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.greeting}>Hi there!</Text>
-            <Text style={styles.userName}>{user?.name ?? ''}</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.profileAvatar}
-            onPress={() => navigation.navigate('ProfileTab')}
-          >
-            {user?.photoUrl ? (
-              <Image source={{ uri: user.photoUrl }} style={styles.profileAvatarImage} resizeMode="cover" />
-            ) : (
-              <Text style={styles.avatarGlyph}>👤</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Search trigger */}
-        <TouchableOpacity
-          style={styles.searchBar}
-          onPress={() => navigation.navigate('ExploreTab')}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.searchIcon}>⌕</Text>
-          <Text style={styles.searchPlaceholder}>Search cafes or neighborhoods</Text>
-        </TouchableOpacity>
-
-        {/* Location denied notice */}
-        {locationAllowed === false && (
-          <View style={styles.locationNotice}>
-            <Text style={styles.locationNoticeText}>
-              Location off — showing cafes near {user?.neighborhood ?? 'your area'} instead.
-            </Text>
-          </View>
+      <FlatList
+        data={cafesLoading && cafes.length === 0 ? [] : cafes}
+        keyExtractor={(c) => c.id}
+        renderItem={({ item, index }) => (
+          <FadeSlideIn delay={Math.min(index * 50, 300)}>
+            <CafeCard cafe={item} onPress={() => handleSelectCafe(item.id)} showSaveButton />
+          </FadeSlideIn>
         )}
-
-        {/* Distance sort toggle — only meaningful once we actually have coordinates */}
-        {canSortByDistance && (
-          <TouchableOpacity
-            style={styles.distanceToggleRow}
-            onPress={() => setDistanceSortEnabled(!distanceSortEnabled)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.distanceToggleText}>Sort by distance</Text>
-            <View style={[styles.toggleTrack, distanceSortEnabled && styles.toggleTrackActive]}>
-              <View style={[styles.toggleThumb, distanceSortEnabled && styles.toggleThumbActive]} />
-            </View>
-          </TouchableOpacity>
-        )}
-
-        {cafesLoading && cafes.length === 0 ? (
-          <ActivityIndicator style={{ marginTop: 40 }} color={Colors.gold} />
-        ) : (
-          <>
-            {featuredCafes.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Featured cafes</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
-                  {featuredCafes.map((cafe, i) => (
-                    <FadeSlideIn key={cafe.id} delay={i * 60}>
-                      <AnimatedPressable style={styles.featuredCard} onPress={() => handleSelectCafe(cafe.id)}>
-                        {cafe.image ? (
-                          <Image source={{ uri: cafe.image }} style={styles.featuredImage} resizeMode="cover" />
-                        ) : (
-                          <View style={styles.featuredImage}>
-                            <Text style={styles.featuredImageText}>☕ {cafe.name}</Text>
-                          </View>
-                        )}
-                        <Text style={styles.featuredName}>{cafe.name}</Text>
-                        <Text style={styles.featuredSub}>{cafe.neighborhood}</Text>
-                      </AnimatedPressable>
-                    </FadeSlideIn>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-
-            {signatureDrinks.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Signature drinks</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
-                  {signatureDrinks.map((drink, i) => (
-                    <FadeSlideIn key={drink.id} delay={i * 60}>
-                      <AnimatedPressable style={styles.signatureCard} onPress={() => handleSelectCafe(drink.cafeId)}>
-                        <View style={styles.signatureImageWrapper}>
-                          {drink.image ? (
-                            <Image source={{ uri: drink.image }} style={styles.signatureImage} resizeMode="cover" />
-                          ) : (
-                            <View style={styles.signatureImage} />
-                          )}
-                          <View style={styles.signatureBadgeContainer}>
-                            <Text style={styles.signatureBadge}>Signature</Text>
-                          </View>
-                        </View>
-                        <Text style={styles.signatureName} numberOfLines={1}>
-                          {drink.name}
-                        </Text>
-                        <Text style={styles.signatureSub}>
-                          {drink.cafeName} · {drink.creditsCost} cr
-                        </Text>
-                      </AnimatedPressable>
-                    </FadeSlideIn>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>New on Social Cup</Text>
-              <View style={styles.cafeList}>
-                {cafes.map((cafe, i) => (
-                  <FadeSlideIn key={cafe.id} delay={Math.min(i * 50, 300)}>
-                    <CafeCard
-                      cafe={cafe}
-                      onPress={() => handleSelectCafe(cafe.id)}
-                      showSaveButton
-                    />
-                  </FadeSlideIn>
-                ))}
-              </View>
-            </View>
-          </>
-        )}
-      </ScrollView>
+        ItemSeparatorComponent={() => <View style={{ height: ITEM_GAP }} />}
+        ListHeaderComponent={listHeader}
+        contentContainerStyle={styles.container}
+        // A plain map-over-array here used to mount all 59+ cafe cards (each with a
+        // network image and its own entrance animation) at once — fine at the original
+        // ~8-cafe scale, but visibly janky on a real phone once the catalog grew.
+        // Windowing keeps only nearby rows mounted.
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        updateCellsBatchingPeriod={50}
+        windowSize={7}
+        removeClippedSubviews
+      />
     </SafeAreaView>
   );
 };
@@ -226,7 +335,10 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 20,
+  },
+  headerBlock: {
     gap: 22,
+    marginBottom: ITEM_GAP,
   },
   headerRow: {
     flexDirection: 'row',
@@ -329,14 +441,47 @@ const styles = StyleSheet.create({
     color: Colors.mute,
   },
   horizontalScroll: {
-    gap: 12,
+    gap: CARD_GAP,
     paddingBottom: 4,
   },
+  mindHeading: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.ink,
+    fontFamily: Fonts.display,
+  },
+  categoryColumn: {
+    gap: CATEGORY_GAP,
+  },
+  categoryTile: {
+    width: CATEGORY_TILE_WIDTH,
+    height: 168,
+    borderRadius: 16,
+    backgroundColor: Colors.panel,
+    padding: 12,
+    overflow: 'hidden',
+    justifyContent: 'space-between',
+  },
+  categoryLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.ink,
+    lineHeight: 19,
+  },
+  categoryImage: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 96,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+  },
   featuredCard: {
-    width: 190,
+    width: FEATURED_CARD_WIDTH,
   },
   featuredImage: {
-    width: 190,
+    width: FEATURED_CARD_WIDTH,
     height: 120,
     borderRadius: 12,
     backgroundColor: Colors.panel,
@@ -361,11 +506,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   signatureCard: {
-    width: 130,
+    width: SIGNATURE_CARD_WIDTH,
   },
   signatureImageWrapper: {
     position: 'relative',
-    width: 130,
+    width: SIGNATURE_CARD_WIDTH,
     height: 100,
     borderRadius: 12,
     overflow: 'hidden',
@@ -399,9 +544,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.mute,
     marginTop: 2,
-  },
-  cafeList: {
-    gap: 12,
   },
   offlineContainer: {
     flex: 1,
