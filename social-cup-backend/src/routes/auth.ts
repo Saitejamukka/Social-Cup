@@ -14,11 +14,22 @@ import {
 } from '../lib/auth.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../lib/email.js';
 import { stripe } from '../lib/stripe.js';
+import { checkLoginRateLimit, recordLoginFailure, resetLoginRateLimit } from '../lib/rateLimit.js';
+import { cleanText } from '../lib/validation.js';
 
 const router = Router();
 
 function newToken(): string {
   return randomBytes(32).toString('hex');
+}
+
+// Deliberately permissive (no lookahead/lookbehind gymnastics) — this only needs
+// to catch obviously-malformed input like "not-an-email", not fully validate
+// per RFC 5322. The actual proof an address works is the verification email.
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidEmail(value: unknown): value is string {
+  return typeof value === 'string' && EMAIL_PATTERN.test(value.trim());
 }
 
 // A minimal styled page for the two links that land in a user's inbox — the
@@ -90,8 +101,12 @@ function isOAuthProvider(value: string): value is OAuthProvider {
 router.post('/register', async (req: Request, res: Response) => {
   const { email, password, name } = req.body ?? {};
 
-  if (!email || !password || !name) {
+  const cleanName = cleanText(name, 100);
+  if (!email || !password || !cleanName) {
     return res.status(400).json({ success: false, error: 'email, password, and name are required' });
+  }
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ success: false, error: 'Please enter a valid email address' });
   }
   if (typeof password !== 'string' || password.length < 8) {
     return res.status(400).json({ success: false, error: 'Password must be at least 8 characters' });
@@ -104,19 +119,32 @@ router.post('/register', async (req: Request, res: Response) => {
 
   const passwordHash = await hashPassword(password);
   const verificationToken = newToken();
-  const user = await prisma.user.create({
-    data: {
-      email: String(email).toLowerCase(),
-      passwordHash,
-      name,
-      role: 'CUSTOMER',
-      accountStatus: 'VISITOR',
-      credits: 0,
-      authProvider: 'EMAIL',
-      emailVerificationToken: verificationToken,
-      emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    },
-  });
+
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: {
+        email: String(email).toLowerCase(),
+        passwordHash,
+        name: cleanName,
+        role: 'CUSTOMER',
+        accountStatus: 'VISITOR',
+        credits: 0,
+        authProvider: 'EMAIL',
+        emailVerificationToken: verificationToken,
+        emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+    });
+  } catch (err: any) {
+    // The findUnique check above has a TOCTOU gap under concurrent requests for
+    // the same email — the unique index is the real guard, so a violation here
+    // still means "already exists", not a server error.
+    if (err?.code === 'P2002') {
+      return res.status(409).json({ success: false, error: 'An account with this email already exists' });
+    }
+    throw err;
+  }
+
   await sendVerificationEmail(user.email, user.name, verificationToken);
 
   const token = signUserToken({ sub: user.id, role: user.role });
@@ -130,10 +158,21 @@ router.post('/login', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'email and password are required' });
   }
 
-  const user = await prisma.user.findUnique({ where: { email: String(email).toLowerCase() } });
+  const emailKey = String(email).toLowerCase();
+  const rateLimit = checkLoginRateLimit(emailKey);
+  if (!rateLimit.allowed) {
+    return res.status(429).json({
+      success: false,
+      error: `Too many failed attempts. Try again in ${Math.ceil((rateLimit.retryAfterSeconds ?? 60) / 60)} minute(s).`,
+    });
+  }
+
+  const user = await prisma.user.findUnique({ where: { email: emailKey } });
   if (!user || !user.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
+    recordLoginFailure(emailKey);
     return res.status(401).json({ success: false, error: 'Invalid email or password' });
   }
+  resetLoginRateLimit(emailKey);
   if (user.authProvider !== 'EMAIL') {
     return res.status(403).json({
       success: false,
@@ -355,7 +394,12 @@ router.get('/reset-password', async (req: Request, res: Response) => {
   const token = String(req.query.token || '');
   const user = token ? await prisma.user.findUnique({ where: { passwordResetToken: token } }) : null;
 
-  if (!user || !user.passwordResetExpires || user.passwordResetExpires.getTime() < Date.now()) {
+  if (!user) {
+    return res.status(400).send(
+      renderPage('Link invalid', `<h1>This link isn't valid</h1><p>Open the app and request a new password reset link.</p>`)
+    );
+  }
+  if (!user.passwordResetExpires || user.passwordResetExpires.getTime() < Date.now()) {
     return res.status(400).send(
       renderPage('Link expired', `<h1>This link has expired</h1><p>Password reset links are valid for one hour. Request a new one from the app.</p>`)
     );
@@ -399,8 +443,11 @@ router.post('/reset-password', async (req: Request, res: Response) => {
   }
 
   const user = token ? await prisma.user.findUnique({ where: { passwordResetToken: String(token) } }) : null;
-  if (!user || !user.passwordResetExpires || user.passwordResetExpires.getTime() < Date.now()) {
-    return res.status(400).json({ success: false, error: 'This reset link has expired' });
+  if (!user) {
+    return res.status(400).json({ success: false, error: 'This reset link is invalid. Request a new one from the app.' });
+  }
+  if (!user.passwordResetExpires || user.passwordResetExpires.getTime() < Date.now()) {
+    return res.status(400).json({ success: false, error: 'This reset link has expired. Request a new one from the app.' });
   }
 
   const passwordHash = await hashPassword(password);

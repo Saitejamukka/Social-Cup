@@ -46,7 +46,9 @@ function serializeCafe(cafe: any, fromCoords?: { lat: number; lng: number }) {
     gallery: cafe.gallery,
     rating: avgRating,
     ratingCount: allRatings.length,
-    lowestCreditPrice: cafe.drinks.filter((d: any) => d.isEnabled).reduce(
+    // MOB-003: a stray non-positive price (bad seed/test data, or pre-validation
+    // legacy rows) must never surface as the advertised "from" price.
+    lowestCreditPrice: cafe.drinks.filter((d: any) => d.isEnabled && d.creditsCost > 0).reduce(
       (min: number | null, d: any) => (min === null || d.creditsCost < min ? d.creditsCost : min),
       null
     ),
@@ -74,9 +76,33 @@ const cafeInclude = {
   drinks: { include: { reviews: { select: { stars: true } } } },
 };
 
-// GET /api/cafes?neighborhood=Uptown&search=roast&lat=32.78&lng=-96.80
+// PRD 2.3's onboarding preference labels (mobile's PREF_OPTIONS) mapped to the
+// keywords that show up in a matching drink's category or name. Drink `category`
+// alone isn't reliable — most of the catalog's newer entries are all generically
+// tagged "Signature drink" — so this also checks the drink name itself.
+const PREFERENCE_KEYWORDS: Record<string, string[]> = {
+  'Specialty brew': ['specialty', 'signature brew', 'single estate', 'craft roastery', 'third wave', 'roastery', 'roast'],
+  'Cold brew': ['cold brew', 'iced', 'nitro', 'affogato'],
+  'Espresso & latte': ['espresso', 'latte', 'cappuccino', 'macchiato', 'cortado', 'flat white', 'mocha', 'melange', 'crème', 'caffè', 'café au lait'],
+  'Pour over & AeroPress': ['pour over', 'aeropress', 'filter coffee', 'drip', 'blend', 'chemex'],
+  'Chai & Tea': ['chai', 'tea', 'matcha'],
+};
+
+// PRD 6.1: "cafes whose coffee type matches the member's stated preference."
+// A cafe matches if any enabled drink's category+name hits a keyword for any
+// of the member's selected preferences.
+function cafeMatchesPreferences(cafe: ReturnType<typeof serializeCafe>, preferences: string[]): boolean {
+  const keywordSets = preferences.map((p) => PREFERENCE_KEYWORDS[p]).filter((k): k is string[] => !!k);
+  if (keywordSets.length === 0) return false;
+  return cafe.drinks.some((d: { category: string; name: string }) => {
+    const text = `${d.category} ${d.name}`.toLowerCase();
+    return keywordSets.some((keywords) => keywords.some((kw) => text.includes(kw)));
+  });
+}
+
+// GET /api/cafes?neighborhood=Uptown&search=roast&lat=32.78&lng=-96.80&preferences=Cold%20brew,Chai%20%26%20Tea
 router.get('/', async (req: Request, res: Response) => {
-  const { neighborhood, search, lat, lng } = req.query;
+  const { neighborhood, search, lat, lng, preferences } = req.query;
 
   let cafes = await prisma.cafe.findMany({
     where: {
@@ -85,9 +111,6 @@ router.get('/', async (req: Request, res: Response) => {
         : {}),
     },
     include: cafeInclude,
-    // Featured cafes first, matching the PRD's curated-discovery ordering rule.
-    // Overridden below by distance when the client supplies its coordinates.
-    orderBy: [{ isFeatured: 'desc' }, { name: 'asc' }],
   });
 
   // Name/tag search stays in application code — the partner network is small
@@ -103,17 +126,34 @@ router.get('/', async (req: Request, res: Response) => {
   const userLng = lng !== undefined ? Number(lng) : NaN;
   const fromCoords = Number.isFinite(userLat) && Number.isFinite(userLng) ? { lat: userLat, lng: userLng } : undefined;
 
-  let serialized = cafes.map((c) => serializeCafe(c, fromCoords));
+  const prefList = preferences
+    ? String(preferences).split(',').map((p) => p.trim()).filter(Boolean)
+    : [];
 
-  // PRD 3.1: "the full cafe list underneath, ordered with the nearest first."
-  // Cafes with no coordinates yet sort to the end rather than dropping out.
-  if (fromCoords) {
-    serialized = serialized.sort((a, b) => {
+  const serialized = cafes.map((c) => serializeCafe(c, fromCoords));
+
+  // PRD 6.1's full ranking in one pass: featured first, then a preference
+  // match, then nearest (or alphabetical when there's no location yet).
+  // A single combined sort — rather than layering a DB orderBy with a later
+  // JS re-sort — so an earlier tier is never silently discarded by a later one.
+  serialized.sort((a, b) => {
+    if (a.isFeatured !== b.isFeatured) return a.isFeatured ? -1 : 1;
+
+    if (prefList.length > 0) {
+      const aMatch = cafeMatchesPreferences(a, prefList);
+      const bMatch = cafeMatchesPreferences(b, prefList);
+      if (aMatch !== bMatch) return aMatch ? -1 : 1;
+    }
+
+    if (fromCoords) {
+      if (a.distanceMiles === null && b.distanceMiles === null) return a.name.localeCompare(b.name);
       if (a.distanceMiles === null) return 1;
       if (b.distanceMiles === null) return -1;
       return a.distanceMiles - b.distanceMiles;
-    });
-  }
+    }
+
+    return a.name.localeCompare(b.name);
+  });
 
   res.json({ success: true, count: serialized.length, cafes: serialized });
 });

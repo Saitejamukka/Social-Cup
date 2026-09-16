@@ -26,6 +26,10 @@ import { AnimatedPressable } from '../../components/AnimatedPressable';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Signup'>;
 
+// Same permissive pattern the backend uses — just enough to catch an obviously
+// malformed address like "notanemail" before it ever reaches the network.
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 // Apple Sign-In is fully implemented in src/auth/appleAuth.ts but stays disabled
 // here until the account holds a paid Apple Developer Program membership
 // (required for the "Sign in with Apple" entitlement) — wire handleAppleSignup
@@ -79,6 +83,10 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
     }
     if (!email.trim()) {
       setError('Enter your email.');
+      return;
+    }
+    if (!EMAIL_PATTERN.test(email.trim())) {
+      setError('Enter a valid email address.');
       return;
     }
     if (password.length < 8) {

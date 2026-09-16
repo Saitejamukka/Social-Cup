@@ -3,6 +3,19 @@ import { randomBytes } from 'crypto';
 import { prisma } from '../lib/prisma.js';
 import { stripe, STRIPE_PRICE_ID } from '../lib/stripe.js';
 import { requireAuth, requireRole, AuthedRequest } from '../lib/auth.js';
+import {
+  isPrismaNotFoundError,
+  isPrismaForeignKeyError,
+  isValidMoneyOrCreditAmount,
+  isValidPayoutRate,
+  isValidLatitude,
+  isValidLongitude,
+  isValidHttpUrl,
+  cleanText,
+  parseDateParam,
+  parseBillingPeriod,
+  escapeCsvCell,
+} from '../lib/validation.js';
 
 const router = Router();
 router.use(requireAuth, requireRole('ADMIN'));
@@ -74,24 +87,40 @@ router.get('/cafes', async (_req: AuthedRequest, res: Response) => {
 // POST /api/admin/cafes
 router.post('/cafes', async (req: AuthedRequest, res: Response) => {
   const { name, neighborhood, address, latitude, longitude, hours, payoutRate, isFeatured, vibeTags, image, gallery, perkLine } = req.body ?? {};
-  if (!name || !neighborhood || !address) {
+
+  const cleanName = cleanText(name, 200);
+  const cleanNeighborhood = cleanText(neighborhood, 100);
+  const cleanAddress = cleanText(address, 300);
+  if (!cleanName || !cleanNeighborhood || !cleanAddress) {
     return res.status(400).json({ success: false, error: 'name, neighborhood, and address are required' });
+  }
+  if (payoutRate !== undefined && !isValidPayoutRate(payoutRate)) {
+    return res.status(400).json({ success: false, error: 'payoutRate must be a positive number up to 100' });
+  }
+  if (latitude !== undefined && latitude !== '' && !isValidLatitude(latitude)) {
+    return res.status(400).json({ success: false, error: 'latitude must be between -90 and 90' });
+  }
+  if (longitude !== undefined && longitude !== '' && !isValidLongitude(longitude)) {
+    return res.status(400).json({ success: false, error: 'longitude must be between -180 and 180' });
+  }
+  if (image && !isValidHttpUrl(image)) {
+    return res.status(400).json({ success: false, error: 'image must be a valid http(s) URL' });
   }
 
   const cafe = await prisma.cafe.create({
     data: {
-      name,
-      neighborhood,
-      address,
+      name: cleanName,
+      neighborhood: cleanNeighborhood,
+      address: cleanAddress,
       latitude: latitude !== undefined && latitude !== '' ? Number(latitude) : null,
       longitude: longitude !== undefined && longitude !== '' ? Number(longitude) : null,
-      hours: hours || '',
+      hours: cleanText(hours, 200) || '',
       payoutRate: payoutRate !== undefined ? Number(payoutRate) : 3.5,
       isFeatured: Boolean(isFeatured),
-      vibeTags: Array.isArray(vibeTags) ? vibeTags : [],
+      vibeTags: Array.isArray(vibeTags) ? vibeTags.map((t) => cleanText(t, 60)).filter((t): t is string => !!t) : [],
       image: image || null,
       gallery: Array.isArray(gallery) ? gallery : [],
-      perkLine: perkLine || null,
+      perkLine: cleanText(perkLine, 200),
       pinCode: String(randomBytes(2).readUInt16BE(0) % 9000 + 1000),
     },
   });
@@ -103,44 +132,85 @@ router.post('/cafes', async (req: AuthedRequest, res: Response) => {
 router.patch('/cafes/:id', async (req: AuthedRequest, res: Response) => {
   const { name, neighborhood, address, latitude, longitude, hours, isOpen, payoutRate, isFeatured, vibeTags, image, gallery, perkLine, priceTier } = req.body ?? {};
 
-  const cafe = await prisma.cafe.update({
-    where: { id: req.params.id },
-    data: {
-      ...(name !== undefined ? { name } : {}),
-      ...(neighborhood !== undefined ? { neighborhood } : {}),
-      ...(address !== undefined ? { address } : {}),
-      ...(latitude !== undefined ? { latitude: latitude === '' ? null : Number(latitude) } : {}),
-      ...(longitude !== undefined ? { longitude: longitude === '' ? null : Number(longitude) } : {}),
-      ...(hours !== undefined ? { hours } : {}),
-      ...(isOpen !== undefined ? { isOpen: Boolean(isOpen) } : {}),
-      ...(payoutRate !== undefined ? { payoutRate: Number(payoutRate) } : {}),
-      ...(isFeatured !== undefined ? { isFeatured: Boolean(isFeatured) } : {}),
-      ...(vibeTags !== undefined ? { vibeTags: Array.isArray(vibeTags) ? vibeTags : [vibeTags] } : {}),
-      ...(image !== undefined ? { image } : {}),
-      ...(gallery !== undefined ? { gallery: Array.isArray(gallery) ? gallery : [gallery] } : {}),
-      ...(perkLine !== undefined ? { perkLine: perkLine || null } : {}),
-      ...(priceTier !== undefined ? { priceTier } : {}),
-    },
-  });
+  if (name !== undefined && !cleanText(name, 200)) {
+    return res.status(400).json({ success: false, error: 'name cannot be blank' });
+  }
+  if (neighborhood !== undefined && !cleanText(neighborhood, 100)) {
+    return res.status(400).json({ success: false, error: 'neighborhood cannot be blank' });
+  }
+  if (address !== undefined && !cleanText(address, 300)) {
+    return res.status(400).json({ success: false, error: 'address cannot be blank' });
+  }
+  if (payoutRate !== undefined && !isValidPayoutRate(payoutRate)) {
+    return res.status(400).json({ success: false, error: 'payoutRate must be a positive number up to 100' });
+  }
+  if (latitude !== undefined && latitude !== '' && !isValidLatitude(latitude)) {
+    return res.status(400).json({ success: false, error: 'latitude must be between -90 and 90' });
+  }
+  if (longitude !== undefined && longitude !== '' && !isValidLongitude(longitude)) {
+    return res.status(400).json({ success: false, error: 'longitude must be between -180 and 180' });
+  }
+  if (image && !isValidHttpUrl(image)) {
+    return res.status(400).json({ success: false, error: 'image must be a valid http(s) URL' });
+  }
 
-  res.json({ success: true, cafe });
+  try {
+    const cafe = await prisma.cafe.update({
+      where: { id: req.params.id },
+      data: {
+        ...(name !== undefined ? { name: cleanText(name, 200)! } : {}),
+        ...(neighborhood !== undefined ? { neighborhood: cleanText(neighborhood, 100)! } : {}),
+        ...(address !== undefined ? { address: cleanText(address, 300)! } : {}),
+        ...(latitude !== undefined ? { latitude: latitude === '' ? null : Number(latitude) } : {}),
+        ...(longitude !== undefined ? { longitude: longitude === '' ? null : Number(longitude) } : {}),
+        ...(hours !== undefined ? { hours: cleanText(hours, 200) || '' } : {}),
+        ...(isOpen !== undefined ? { isOpen: Boolean(isOpen) } : {}),
+        ...(payoutRate !== undefined ? { payoutRate: Number(payoutRate) } : {}),
+        ...(isFeatured !== undefined ? { isFeatured: Boolean(isFeatured) } : {}),
+        ...(vibeTags !== undefined
+          ? { vibeTags: (Array.isArray(vibeTags) ? vibeTags : [vibeTags]).map((t) => cleanText(t, 60)).filter((t): t is string => !!t) }
+          : {}),
+        ...(image !== undefined ? { image } : {}),
+        ...(gallery !== undefined ? { gallery: Array.isArray(gallery) ? gallery : [gallery] } : {}),
+        ...(perkLine !== undefined ? { perkLine: cleanText(perkLine, 200) } : {}),
+        ...(priceTier !== undefined ? { priceTier } : {}),
+      },
+    });
+    res.json({ success: true, cafe });
+  } catch (err) {
+    if (isPrismaNotFoundError(err)) return res.status(404).json({ success: false, error: 'Cafe not found' });
+    throw err;
+  }
 });
 
 // DELETE /api/admin/cafes/:id
 router.delete('/cafes/:id', async (req: AuthedRequest, res: Response) => {
-  await prisma.cafe.delete({ where: { id: req.params.id } });
-  res.json({ success: true });
+  try {
+    await prisma.cafe.delete({ where: { id: req.params.id } });
+    res.json({ success: true });
+  } catch (err) {
+    if (isPrismaNotFoundError(err)) return res.status(404).json({ success: false, error: 'Cafe not found' });
+    if (isPrismaForeignKeyError(err)) {
+      return res.status(409).json({ success: false, error: 'This cafe has redemption or payout history and cannot be deleted' });
+    }
+    throw err;
+  }
 });
 
 // POST /api/admin/cafes/:id/reset-pin
 // Bumps pinVersion, which invalidates every device token already trusted for this cafe.
 router.post('/cafes/:id/reset-pin', async (req: AuthedRequest, res: Response) => {
   const newPin = String(randomBytes(2).readUInt16BE(0) % 9000 + 1000);
-  const cafe = await prisma.cafe.update({
-    where: { id: req.params.id },
-    data: { pinCode: newPin, pinVersion: { increment: 1 } },
-  });
-  res.json({ success: true, pinCode: cafe.pinCode });
+  try {
+    const cafe = await prisma.cafe.update({
+      where: { id: req.params.id },
+      data: { pinCode: newPin, pinVersion: { increment: 1 } },
+    });
+    res.json({ success: true, pinCode: cafe.pinCode });
+  } catch (err) {
+    if (isPrismaNotFoundError(err)) return res.status(404).json({ success: false, error: 'Cafe not found' });
+    throw err;
+  }
 });
 
 // ---------------- Drinks / Menu ----------------
@@ -148,51 +218,93 @@ router.post('/cafes/:id/reset-pin', async (req: AuthedRequest, res: Response) =>
 // POST /api/admin/cafes/:cafeId/drinks
 router.post('/cafes/:cafeId/drinks', async (req: AuthedRequest, res: Response) => {
   const { name, description, creditsCost, retailPrice, isSignature, category, image } = req.body ?? {};
-  if (!name || creditsCost === undefined || retailPrice === undefined) {
+  const cleanName = cleanText(name, 200);
+  if (!cleanName || creditsCost === undefined || retailPrice === undefined) {
     return res.status(400).json({ success: false, error: 'name, creditsCost, and retailPrice are required' });
   }
+  if (!isValidMoneyOrCreditAmount(creditsCost, 1000)) {
+    return res.status(400).json({ success: false, error: 'creditsCost must be a positive number up to 1000' });
+  }
+  if (!isValidMoneyOrCreditAmount(retailPrice, 1000)) {
+    return res.status(400).json({ success: false, error: 'retailPrice must be a positive number up to 1000' });
+  }
+  if (image && !isValidHttpUrl(image)) {
+    return res.status(400).json({ success: false, error: 'image must be a valid http(s) URL' });
+  }
 
-  const drink = await prisma.drink.create({
-    data: {
-      cafeId: req.params.cafeId,
-      name,
-      description: description || '',
-      creditsCost: Number(creditsCost),
-      retailPrice: Number(retailPrice),
-      isSignature: Boolean(isSignature),
-      category: category || 'Espresso drink',
-      image: image || null,
-    },
-  });
-
-  res.status(201).json({ success: true, drink });
+  try {
+    const drink = await prisma.drink.create({
+      data: {
+        cafeId: req.params.cafeId,
+        name: cleanName,
+        description: cleanText(description, 500) || '',
+        creditsCost: Number(creditsCost),
+        retailPrice: Number(retailPrice),
+        isSignature: Boolean(isSignature),
+        category: cleanText(category, 100) || 'Espresso drink',
+        image: image || null,
+      },
+    });
+    res.status(201).json({ success: true, drink });
+  } catch (err) {
+    if (isPrismaNotFoundError(err)) return res.status(404).json({ success: false, error: 'Cafe not found' });
+    throw err;
+  }
 });
 
 // PATCH /api/admin/drinks/:id
 router.patch('/drinks/:id', async (req: AuthedRequest, res: Response) => {
   const { name, description, creditsCost, retailPrice, isSignature, isEnabled, category, image } = req.body ?? {};
 
-  const drink = await prisma.drink.update({
-    where: { id: req.params.id },
-    data: {
-      ...(name !== undefined ? { name } : {}),
-      ...(description !== undefined ? { description } : {}),
-      ...(creditsCost !== undefined ? { creditsCost: Number(creditsCost) } : {}),
-      ...(retailPrice !== undefined ? { retailPrice: Number(retailPrice) } : {}),
-      ...(isSignature !== undefined ? { isSignature: Boolean(isSignature) } : {}),
-      ...(isEnabled !== undefined ? { isEnabled: Boolean(isEnabled) } : {}),
-      ...(category !== undefined ? { category } : {}),
-      ...(image !== undefined ? { image } : {}),
-    },
-  });
+  if (name !== undefined && !cleanText(name, 200)) {
+    return res.status(400).json({ success: false, error: 'name cannot be blank' });
+  }
+  if (creditsCost !== undefined && !isValidMoneyOrCreditAmount(creditsCost, 1000)) {
+    return res.status(400).json({ success: false, error: 'creditsCost must be a positive number up to 1000' });
+  }
+  if (retailPrice !== undefined && !isValidMoneyOrCreditAmount(retailPrice, 1000)) {
+    return res.status(400).json({ success: false, error: 'retailPrice must be a positive number up to 1000' });
+  }
+  if (image && !isValidHttpUrl(image)) {
+    return res.status(400).json({ success: false, error: 'image must be a valid http(s) URL' });
+  }
 
-  res.json({ success: true, drink });
+  try {
+    const drink = await prisma.drink.update({
+      where: { id: req.params.id },
+      data: {
+        ...(name !== undefined ? { name: cleanText(name, 200)! } : {}),
+        ...(description !== undefined ? { description: cleanText(description, 500) || '' } : {}),
+        ...(creditsCost !== undefined ? { creditsCost: Number(creditsCost) } : {}),
+        ...(retailPrice !== undefined ? { retailPrice: Number(retailPrice) } : {}),
+        ...(isSignature !== undefined ? { isSignature: Boolean(isSignature) } : {}),
+        ...(isEnabled !== undefined ? { isEnabled: Boolean(isEnabled) } : {}),
+        ...(category !== undefined ? { category: cleanText(category, 100) || 'Espresso drink' } : {}),
+        ...(image !== undefined ? { image } : {}),
+      },
+    });
+    res.json({ success: true, drink });
+  } catch (err) {
+    if (isPrismaNotFoundError(err)) return res.status(404).json({ success: false, error: 'Drink not found' });
+    throw err;
+  }
 });
 
 // DELETE /api/admin/drinks/:id
 router.delete('/drinks/:id', async (req: AuthedRequest, res: Response) => {
-  await prisma.drink.delete({ where: { id: req.params.id } });
-  res.json({ success: true });
+  try {
+    await prisma.drink.delete({ where: { id: req.params.id } });
+    res.json({ success: true });
+  } catch (err) {
+    if (isPrismaNotFoundError(err)) return res.status(404).json({ success: false, error: 'Drink not found' });
+    if (isPrismaForeignKeyError(err)) {
+      return res.status(409).json({
+        success: false,
+        error: 'This drink has redemption history and cannot be deleted — disable it instead',
+      });
+    }
+    throw err;
+  }
 });
 
 // ---------------- Members ----------------
@@ -217,27 +329,37 @@ router.get('/members', async (_req: AuthedRequest, res: Response) => {
   });
 });
 
-// PATCH /api/admin/members/:id/status  { status: 'MEMBER' | 'CANCELED' | ... }
+// PATCH /api/admin/members/:id/status  { status: 'VISITOR' | 'EXPIRED' | 'CANCELED' }
+// MEMBER is deliberately not a settable value here — real membership is only
+// ever granted by Stripe's webhook once a payment actually clears (PRD 7.2).
+// This endpoint exists to deactivate an account (PRD 9.6), not to grant one.
 router.patch('/members/:id/status', async (req: AuthedRequest, res: Response) => {
   const { status } = req.body ?? {};
-  if (!['VISITOR', 'MEMBER', 'EXPIRED', 'CANCELED'].includes(status)) {
-    return res.status(400).json({ success: false, error: 'Invalid status' });
+  if (!['VISITOR', 'EXPIRED', 'CANCELED'].includes(status)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid status. Membership can only be granted through a real Stripe payment — this endpoint can only deactivate an account.',
+    });
   }
-  const member = await prisma.user.update({ where: { id: req.params.id }, data: { accountStatus: status } });
-  res.json({ success: true, member: { id: member.id, status: member.accountStatus } });
+  try {
+    const member = await prisma.user.update({ where: { id: req.params.id }, data: { accountStatus: status } });
+    res.json({ success: true, member: { id: member.id, status: member.accountStatus } });
+  } catch (err) {
+    if (isPrismaNotFoundError(err)) return res.status(404).json({ success: false, error: 'Member not found' });
+    throw err;
+  }
 });
 
 // ---------------- Redemption log ----------------
 
-function redemptionWhere(query: AuthedRequest['query']) {
-  const { cafeId, from, to } = query as Record<string, string | undefined>;
+function redemptionWhere(cafeId: string | undefined, from: Date | undefined, to: Date | undefined) {
   return {
     ...(cafeId ? { cafeId } : {}),
     ...(from || to
       ? {
           createdAt: {
-            ...(from ? { gte: new Date(from) } : {}),
-            ...(to ? { lte: new Date(to) } : {}),
+            ...(from ? { gte: from } : {}),
+            ...(to ? { lte: to } : {}),
           },
         }
       : {}),
@@ -265,8 +387,15 @@ function toRow(r: any) {
 
 // GET /api/admin/redemptions?cafeId=&from=&to=
 router.get('/redemptions', async (req: AuthedRequest, res: Response) => {
+  const { cafeId, from, to } = req.query as Record<string, string | undefined>;
+  const fromParsed = parseDateParam(from);
+  const toParsed = parseDateParam(to);
+  if (!fromParsed.ok || !toParsed.ok) {
+    return res.status(400).json({ success: false, error: 'from/to must be valid dates' });
+  }
+
   const redemptions = await prisma.redemption.findMany({
-    where: redemptionWhere(req.query),
+    where: redemptionWhere(cafeId, fromParsed.date, toParsed.date),
     include: { user: true, cafe: true, drink: true, voidedBy: true },
     orderBy: { createdAt: 'desc' },
   });
@@ -275,17 +404,23 @@ router.get('/redemptions', async (req: AuthedRequest, res: Response) => {
 
 // GET /api/admin/redemptions/export?cafeId=&from=&to=
 router.get('/redemptions/export', async (req: AuthedRequest, res: Response) => {
+  const { cafeId, from, to } = req.query as Record<string, string | undefined>;
+  const fromParsed = parseDateParam(from);
+  const toParsed = parseDateParam(to);
+  if (!fromParsed.ok || !toParsed.ok) {
+    return res.status(400).json({ success: false, error: 'from/to must be valid dates' });
+  }
+
   const redemptions = await prisma.redemption.findMany({
-    where: redemptionWhere(req.query),
+    where: redemptionWhere(cafeId, fromParsed.date, toParsed.date),
     include: { user: true, cafe: true, drink: true, voidedBy: true },
     orderBy: { createdAt: 'desc' },
   });
 
   const header = 'Member,Cafe,Drink,Credits,Member Value,Cafe Payout,Margin,Status,Time';
-  const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const lines = redemptions.map(toRow).map((r) =>
     [r.member, r.cafe, r.drink, r.credits, r.memberValue, r.cafePayout ?? '', r.margin ?? '', r.status, new Date(r.time).toISOString()]
-      .map(escape)
+      .map(escapeCsvCell)
       .join(',')
   );
 
@@ -297,7 +432,7 @@ router.get('/redemptions/export', async (req: AuthedRequest, res: Response) => {
 
 // POST /api/admin/redemptions/:id/void  { reason }
 router.post('/redemptions/:id/void', async (req: AuthedRequest, res: Response) => {
-  const { reason } = req.body ?? {};
+  const reason = cleanText(req.body?.reason, 500);
   if (!reason) {
     return res.status(400).json({ success: false, error: 'A void reason is required' });
   }
@@ -332,8 +467,12 @@ router.post('/redemptions/:id/void', async (req: AuthedRequest, res: Response) =
 // GET /api/admin/payouts?period=2026-08
 router.get('/payouts', async (req: AuthedRequest, res: Response) => {
   const now = new Date();
-  const period = (req.query.period as string) || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const [year, month] = period.split('-').map(Number);
+  const periodStr = (req.query.period as string) || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const parsed = parseBillingPeriod(periodStr);
+  if (!parsed) {
+    return res.status(400).json({ success: false, error: 'period must be in YYYY-MM format' });
+  }
+  const { year, month } = parsed;
   const start = new Date(year, month - 1, 1);
   const end = new Date(year, month, 1);
 
@@ -342,7 +481,7 @@ router.get('/payouts', async (req: AuthedRequest, res: Response) => {
       redemptions: {
         where: { status: 'REDEEMED', redeemedAt: { gte: start, lt: end } },
       },
-      payouts: { where: { billingPeriod: period } },
+      payouts: { where: { billingPeriod: periodStr } },
     },
   });
 
@@ -355,7 +494,7 @@ router.get('/payouts', async (req: AuthedRequest, res: Response) => {
       return {
         cafeId: c.id,
         cafe: c.name,
-        period,
+        period: periodStr,
         redemptions: c.redemptions.length,
         totalCredits,
         amountOwed: Number(amountOwed.toFixed(2)),
@@ -365,37 +504,44 @@ router.get('/payouts', async (req: AuthedRequest, res: Response) => {
       };
     });
 
-  res.json({ success: true, period, payouts: rows });
+  res.json({ success: true, period: periodStr, payouts: rows });
 });
 
 // POST /api/admin/payouts/:cafeId/pay  { period, amount, reference }
 router.post('/payouts/:cafeId/pay', async (req: AuthedRequest, res: Response) => {
   const { period, amount, reference } = req.body ?? {};
-  if (!period || amount === undefined) {
-    return res.status(400).json({ success: false, error: 'period and amount are required' });
+  if (!period || !parseBillingPeriod(String(period))) {
+    return res.status(400).json({ success: false, error: 'period must be in YYYY-MM format' });
+  }
+  if (amount === undefined || !Number.isFinite(Number(amount)) || Number(amount) < 0) {
+    return res.status(400).json({ success: false, error: 'amount must be a non-negative number' });
   }
 
-  const payout = await prisma.payout.upsert({
-    where: { cafeId_billingPeriod: { cafeId: req.params.cafeId, billingPeriod: period } },
-    create: {
-      cafeId: req.params.cafeId,
-      billingPeriod: period,
-      totalRedemptions: 0,
-      totalCredits: 0,
-      amountOwed: Number(amount),
-      status: 'PAID',
-      reference: reference || null,
-      paidAt: new Date(),
-    },
-    update: {
-      status: 'PAID',
-      amountOwed: Number(amount),
-      reference: reference || null,
-      paidAt: new Date(),
-    },
-  });
-
-  res.json({ success: true, payout });
+  try {
+    const payout = await prisma.payout.upsert({
+      where: { cafeId_billingPeriod: { cafeId: req.params.cafeId, billingPeriod: period } },
+      create: {
+        cafeId: req.params.cafeId,
+        billingPeriod: period,
+        totalRedemptions: 0,
+        totalCredits: 0,
+        amountOwed: Number(amount),
+        status: 'PAID',
+        reference: cleanText(reference, 200),
+        paidAt: new Date(),
+      },
+      update: {
+        status: 'PAID',
+        amountOwed: Number(amount),
+        reference: cleanText(reference, 200),
+        paidAt: new Date(),
+      },
+    });
+    res.json({ success: true, payout });
+  } catch (err) {
+    if (isPrismaNotFoundError(err)) return res.status(404).json({ success: false, error: 'Cafe not found' });
+    throw err;
+  }
 });
 
 export { router as adminRoutes };

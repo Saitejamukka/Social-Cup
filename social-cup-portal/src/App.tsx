@@ -17,6 +17,24 @@ function clearBaristaSession() {
   localStorage.removeItem(BARISTA_STORAGE_KEY);
 }
 
+// ADM-006: the whole portal is styled with inline objects rather than a
+// stylesheet, so real `@media` breakpoints aren't available — this tracks the
+// viewport in JS instead and feeds a boolean into the few layout spots
+// (sidebar, header, dashboard grid) that need to reflow below ~1024px.
+function useIsNarrow(breakpoint = 1024): boolean {
+  const [isNarrow, setIsNarrow] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth < breakpoint
+  );
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const onChange = () => setIsNarrow(mql.matches);
+    onChange();
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, [breakpoint]);
+  return isNarrow;
+}
+
 // Shared style helpers so the markup below stays readable.
 const card: React.CSSProperties = { backgroundColor: '#FFFFFF', border: '1px solid #DEE3C9', borderRadius: '12px' };
 const input: React.CSSProperties = { padding: '11px', borderRadius: '8px', border: '1px solid #DEE3C9', fontSize: '13px', width: '100%' };
@@ -75,18 +93,18 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#F9F5EA' }}>
-      <header style={{ height: '60px', backgroundColor: '#352A24', color: '#FFFFFF', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #4E5A3F' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ fontSize: '19px', fontWeight: 700, fontFamily: 'Playfair Display, serif' }}>Social Cup Portal</span>
-          <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', padding: '4px 10px', borderRadius: '20px', backgroundColor: session.kind === 'ADMIN' ? '#687451' : '#4E5A3F', color: '#FFFFFF' }}>
+      <header style={{ minHeight: '60px', backgroundColor: '#352A24', color: '#FFFFFF', padding: '10px 16px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '8px', borderBottom: '1px solid #4E5A3F' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', minWidth: 0 }}>
+          <span style={{ fontSize: '17px', fontWeight: 700, fontFamily: 'Playfair Display, serif', whiteSpace: 'nowrap' }}>Social Cup Portal</span>
+          <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', padding: '4px 10px', borderRadius: '20px', backgroundColor: session.kind === 'ADMIN' ? '#687451' : '#4E5A3F', color: '#FFFFFF', whiteSpace: 'nowrap' }}>
             {session.kind === 'ADMIN' ? '👑 HQ Admin' : `☕ Barista (${session.cafeName})`}
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>
+          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>
             {session.kind === 'ADMIN' ? session.email : session.neighborhood}
           </span>
-          <button onClick={signOut} style={{ background: '#4E5A3F', border: '1px solid rgba(255,255,255,0.2)', color: '#FFFFFF', fontSize: '12px', fontWeight: 600, cursor: 'pointer', padding: '6px 14px', borderRadius: '6px' }}>
+          <button onClick={signOut} style={{ background: '#4E5A3F', border: '1px solid rgba(255,255,255,0.2)', color: '#FFFFFF', fontSize: '12px', fontWeight: 600, cursor: 'pointer', padding: '6px 14px', borderRadius: '6px', flexShrink: 0 }}>
             Sign out
           </button>
         </div>
@@ -211,11 +229,17 @@ function LoginScreen({
           <form onSubmit={submitBarista} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <Field label="Counter Station">
               <select value={selectedCafeId} onChange={(e) => setSelectedCafeId(e.target.value)} style={input}>
-                {cafes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} — {c.neighborhood}
-                  </option>
-                ))}
+                {cafes.map((c) => {
+                  // BAR-003: <option> text is rendered by the OS, not styleable
+                  // CSS-ellipsis — an absurdly long cafe name has to be truncated
+                  // in the string itself rather than with overflow/text-overflow.
+                  const label = c.name.length > 60 ? `${c.name.slice(0, 60)}…` : c.name;
+                  return (
+                    <option key={c.id} value={c.id}>
+                      {label} — {c.neighborhood}
+                    </option>
+                  );
+                })}
               </select>
             </Field>
             <Field label="Cafe PIN">
@@ -257,26 +281,46 @@ type AdminTab = 'dashboard' | 'cafes' | 'menu' | 'members' | 'redemptions' | 'pa
 
 function AdminSurface() {
   const [tab, setTab] = useState<AdminTab>('dashboard');
+  const isNarrow = useIsNarrow();
+
+  const tabs: { key: AdminTab; label: string; icon: string }[] = [
+    { key: 'dashboard', label: 'Dashboard', icon: '📊' },
+    { key: 'cafes', label: 'Dallas Cafes', icon: '☕' },
+    { key: 'menu', label: 'Menu & Pricing', icon: '🏷️' },
+    { key: 'members', label: 'Members', icon: '👥' },
+    { key: 'redemptions', label: 'Redemption Log', icon: '📋' },
+    { key: 'payouts', label: 'Payouts', icon: '💳' },
+    { key: 'settings', label: 'Settings', icon: '⚙️' },
+  ];
 
   return (
-    <div style={{ display: 'flex', flex: 1 }}>
-      <div style={{ width: '220px', backgroundColor: '#2A211C', padding: '20px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        {([
-          { key: 'dashboard', label: '📊 Dashboard' },
-          { key: 'cafes', label: '☕ Dallas Cafes' },
-          { key: 'menu', label: '🏷️ Menu & Pricing' },
-          { key: 'members', label: '👥 Members' },
-          { key: 'redemptions', label: '📋 Redemption Log' },
-          { key: 'payouts', label: '💳 Payouts' },
-          { key: 'settings', label: '⚙️ Settings' },
-        ] as { key: AdminTab; label: string }[]).map((t) => (
-          <button key={t.key} onClick={() => setTab(t.key)} style={{ textAlign: 'left', padding: '11px 14px', borderRadius: '8px', border: 'none', fontWeight: 600, fontSize: '13px', cursor: 'pointer', backgroundColor: tab === t.key ? '#4E5A3F' : 'transparent', color: tab === t.key ? '#B7C49A' : 'rgba(255,255,255,0.7)' }}>
-            {t.label}
+    <div style={{ display: 'flex', flex: 1, flexDirection: isNarrow ? 'column' : 'row', minWidth: 0 }}>
+      {/* ADM-006: a fixed 220px sidebar pushed the main content off-screen below
+          ~1024px — below that width this becomes a horizontally-scrolling icon
+          strip along the top instead of a sidebar that eats half the viewport. */}
+      <div
+        style={
+          isNarrow
+            ? { display: 'flex', overflowX: 'auto', backgroundColor: '#2A211C', padding: '8px', gap: '4px' }
+            : { width: '220px', flexShrink: 0, backgroundColor: '#2A211C', padding: '20px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }
+        }
+      >
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            style={
+              isNarrow
+                ? { flexShrink: 0, textAlign: 'center', padding: '8px 12px', borderRadius: '8px', border: 'none', fontWeight: 600, fontSize: '11px', cursor: 'pointer', backgroundColor: tab === t.key ? '#4E5A3F' : 'transparent', color: tab === t.key ? '#B7C49A' : 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap' }
+                : { textAlign: 'left', padding: '11px 14px', borderRadius: '8px', border: 'none', fontWeight: 600, fontSize: '13px', cursor: 'pointer', backgroundColor: tab === t.key ? '#4E5A3F' : 'transparent', color: tab === t.key ? '#B7C49A' : 'rgba(255,255,255,0.7)' }
+            }
+          >
+            {t.icon} {t.label}
           </button>
         ))}
       </div>
 
-      <div style={{ flex: 1, padding: '32px 36px', overflowY: 'auto' }}>
+      <div style={{ flex: 1, minWidth: 0, padding: isNarrow ? '18px' : '32px 36px', overflowY: 'auto', overflowX: 'auto' }}>
         {tab === 'dashboard' && <DashboardTab />}
         {tab === 'cafes' && <CafesTab />}
         {tab === 'menu' && <MenuTab />}
@@ -352,7 +396,7 @@ function DashboardTab() {
       {!metrics ? (
         <div style={{ color: '#6F6555', fontSize: '13px' }}>Loading metrics…</div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
           {rows.map((s, i) => (
             <div key={i} style={{ ...card, padding: '20px' }}>
               <div style={{ fontSize: '12px', color: '#6F6555' }}>{s.label}</div>
@@ -370,6 +414,8 @@ function CafesTab() {
   const [loading, setLoading] = useState(true);
   const [editingCafe, setEditingCafe] = useState<any | null>(null);
   const [pinMessage, setPinMessage] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const refresh = useCallback(() => {
     setLoading(true);
@@ -383,14 +429,40 @@ function CafesTab() {
     refresh();
   };
 
+  const openNewCafe = () => {
+    setSaveError(null);
+    setEditingCafe({ id: 'new', name: '', neighborhood: 'Bishop Arts', address: '', hours: '', payoutRate: 3.5, isFeatured: false, vibeTags: [] });
+  };
+
   const saveCafe = async (data: any) => {
-    if (editingCafe.id === 'new') {
-      await api.adminCreateCafe(data);
-    } else {
-      await api.adminUpdateCafe(editingCafe.id, data);
+    setSaving(true);
+    setSaveError(null);
+    try {
+      if (editingCafe.id === 'new') {
+        await api.adminCreateCafe(data);
+      } else {
+        await api.adminUpdateCafe(editingCafe.id, data);
+      }
+      setEditingCafe(null);
+      refresh();
+    } catch (err: any) {
+      // ADM-001: the backend already rejected this correctly (400 on blank
+      // required fields) — the bug was the drawer silently swallowing that and
+      // just sitting there. Surface it instead of closing/discarding the form.
+      setSaveError(err.message || 'Could not save this cafe. Please check the fields and try again.');
+    } finally {
+      setSaving(false);
     }
-    setEditingCafe(null);
-    refresh();
+  };
+
+  const deleteCafe = async (c: any) => {
+    if (!window.confirm(`Delete ${c.name}? This cannot be undone unless it has redemption history, in which case the delete will be refused.`)) return;
+    try {
+      await api.adminDeleteCafe(c.id);
+      refresh();
+    } catch (err: any) {
+      window.alert(err.message || 'Could not delete this cafe.');
+    }
   };
 
   const resetPin = async () => {
@@ -403,7 +475,7 @@ function CafesTab() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <SectionTitle>Partner Cafes Management</SectionTitle>
-        <button onClick={() => setEditingCafe({ id: 'new', name: '', neighborhood: 'Bishop Arts', address: '', hours: '', payoutRate: 3.5, isFeatured: false, vibeTags: [] })} style={primaryBtn}>
+        <button onClick={openNewCafe} style={primaryBtn}>
           + Add New Cafe
         </button>
       </div>
@@ -411,12 +483,12 @@ function CafesTab() {
       {loading ? (
         <div style={{ color: '#6F6555', fontSize: '13px' }}>Loading cafes…</div>
       ) : (
-        <div style={{ ...card, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 1fr', padding: '12px 18px', backgroundColor: '#F9F5EA', fontSize: '11px', fontWeight: 700, color: '#6F6555', textTransform: 'uppercase' }}>
-            <div>Cafe</div><div>Neighborhood</div><div>Payout Rate</div><div>Featured</div><div>Action</div>
+        <div style={{ ...card, overflow: 'auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 1fr 0.6fr', padding: '12px 18px', backgroundColor: '#F9F5EA', fontSize: '11px', fontWeight: 700, color: '#6F6555', textTransform: 'uppercase', minWidth: '640px' }}>
+            <div>Cafe</div><div>Neighborhood</div><div>Payout Rate</div><div>Featured</div><div>Action</div><div>Delete</div>
           </div>
           {cafes.map((c) => (
-            <div key={c.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 1fr', padding: '12px 18px', borderTop: '1px solid #E8EBD9', alignItems: 'center', fontSize: '13px' }}>
+            <div key={c.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 1fr 0.6fr', padding: '12px 18px', borderTop: '1px solid #E8EBD9', alignItems: 'center', fontSize: '13px', minWidth: '640px' }}>
               <div style={{ fontWeight: 600 }}>{c.name}</div>
               <div style={{ color: '#6F6555' }}>{c.neighborhood}</div>
               <div>${c.payoutRate.toFixed(2)}/cr</div>
@@ -426,7 +498,10 @@ function CafesTab() {
                 </button>
               </div>
               <div>
-                <button onClick={() => setEditingCafe(c)} style={secondaryBtn}>Edit Details</button>
+                <button onClick={() => { setSaveError(null); setEditingCafe(c); }} style={secondaryBtn}>Edit Details</button>
+              </div>
+              <div>
+                <button onClick={() => deleteCafe(c)} style={{ ...secondaryBtn, color: '#B84C3E', borderColor: '#E9C6C0' }}>Delete</button>
               </div>
             </div>
           ))}
@@ -436,10 +511,12 @@ function CafesTab() {
       {editingCafe && (
         <CafeDrawer
           cafe={editingCafe}
-          onClose={() => { setEditingCafe(null); setPinMessage(null); }}
+          onClose={() => { setEditingCafe(null); setPinMessage(null); setSaveError(null); }}
           onSave={saveCafe}
           onResetPin={editingCafe.id !== 'new' ? resetPin : undefined}
           pinMessage={pinMessage}
+          error={saveError}
+          saving={saving}
         />
       )}
     </div>
@@ -490,7 +567,23 @@ function AddressAutocomplete({ onSelect }: { onSelect: (data: { address: string;
   );
 }
 
-function CafeDrawer({ cafe, onClose, onSave, onResetPin, pinMessage }: { cafe: any; onClose: () => void; onSave: (data: any) => void; onResetPin?: () => void; pinMessage: string | null }) {
+function CafeDrawer({
+  cafe,
+  onClose,
+  onSave,
+  onResetPin,
+  pinMessage,
+  error,
+  saving,
+}: {
+  cafe: any;
+  onClose: () => void;
+  onSave: (data: any) => void;
+  onResetPin?: () => void;
+  pinMessage: string | null;
+  error?: string | null;
+  saving?: boolean;
+}) {
   const [form, setForm] = useState({
     name: cafe.name || '',
     neighborhood: cafe.neighborhood || '',
@@ -528,21 +621,23 @@ function CafeDrawer({ cafe, onClose, onSave, onResetPin, pinMessage }: { cafe: a
   const removeGalleryUrl = (url: string) => setForm({ ...form, gallery: form.gallery.filter((u) => u !== url) });
 
   return (
-    <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: '400px', backgroundColor: '#FFFFFF', borderLeft: '1px solid #DEE3C9', padding: '28px', display: 'flex', flexDirection: 'column', gap: '14px', zIndex: 60, boxShadow: '-4px 0 24px rgba(0,0,0,0.08)', overflowY: 'auto' }}>
+    <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(400px, 100vw)', backgroundColor: '#FFFFFF', borderLeft: '1px solid #DEE3C9', padding: '28px', display: 'flex', flexDirection: 'column', gap: '14px', zIndex: 60, boxShadow: '-4px 0 24px rgba(0,0,0,0.08)', overflowY: 'auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontSize: '20px', fontWeight: 600, fontFamily: 'Playfair Display, serif' }}>{cafe.id === 'new' ? 'Add Cafe' : 'Edit Cafe Details'}</div>
         <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
       </div>
-      <input placeholder="Cafe Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={input} />
-      <input placeholder="Neighborhood" value={form.neighborhood} onChange={(e) => setForm({ ...form, neighborhood: e.target.value })} style={input} />
+      <input placeholder="Cafe Name" value={form.name} maxLength={200} onChange={(e) => setForm({ ...form, name: e.target.value })} style={input} />
+      <input placeholder="Neighborhood" value={form.neighborhood} maxLength={100} onChange={(e) => setForm({ ...form, neighborhood: e.target.value })} style={input} />
       <AddressAutocomplete
         onSelect={({ address, lat, lng }) => setForm({ ...form, address, latitude: lat, longitude: lng })}
       />
-      <input placeholder="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} style={input} />
+      <input placeholder="Address" value={form.address} maxLength={300} onChange={(e) => setForm({ ...form, address: e.target.value })} style={input} />
       <div style={{ display: 'flex', gap: '10px' }}>
         <input
           type="number"
           step="0.0001"
+          min={-90}
+          max={90}
           placeholder="Latitude"
           value={form.latitude}
           onChange={(e) => setForm({ ...form, latitude: e.target.value === '' ? '' : Number(e.target.value) })}
@@ -551,16 +646,18 @@ function CafeDrawer({ cafe, onClose, onSave, onResetPin, pinMessage }: { cafe: a
         <input
           type="number"
           step="0.0001"
+          min={-180}
+          max={180}
           placeholder="Longitude"
           value={form.longitude}
           onChange={(e) => setForm({ ...form, longitude: e.target.value === '' ? '' : Number(e.target.value) })}
           style={{ ...input, flex: 1 }}
         />
       </div>
-      <input placeholder="Hours" value={form.hours} onChange={(e) => setForm({ ...form, hours: e.target.value })} style={input} />
+      <input placeholder="Hours" value={form.hours} maxLength={200} onChange={(e) => setForm({ ...form, hours: e.target.value })} style={input} />
       <div>
         <div style={{ fontSize: '12px', color: '#6F6555', marginBottom: '4px' }}>Payout Rate ($/credit)</div>
-        <input type="number" step="0.25" value={form.payoutRate} onChange={(e) => setForm({ ...form, payoutRate: Number(e.target.value) })} style={input} />
+        <input type="number" step="0.25" min={0.01} max={100} value={form.payoutRate} onChange={(e) => setForm({ ...form, payoutRate: Number(e.target.value) })} style={input} />
       </div>
 
       <div>
@@ -568,6 +665,7 @@ function CafeDrawer({ cafe, onClose, onSave, onResetPin, pinMessage }: { cafe: a
         <input
           placeholder="e.g. Free WiFi + 10% off pastries"
           value={form.perkLine}
+          maxLength={200}
           onChange={(e) => setForm({ ...form, perkLine: e.target.value })}
           style={input}
         />
@@ -575,7 +673,7 @@ function CafeDrawer({ cafe, onClose, onSave, onResetPin, pinMessage }: { cafe: a
 
       <div>
         <div style={{ fontSize: '12px', color: '#6F6555', marginBottom: '4px' }}>Cover photo URL</div>
-        <input placeholder="https://…" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} style={input} />
+        <input type="url" placeholder="https://…" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} style={input} />
       </div>
 
       <div>
@@ -632,8 +730,14 @@ function CafeDrawer({ cafe, onClose, onSave, onResetPin, pinMessage }: { cafe: a
         </div>
       )}
 
-      <button onClick={() => onSave(form)} style={{ marginTop: 'auto', padding: '14px', borderRadius: '999px', border: 'none', backgroundColor: '#687451', color: '#FFFFFF', fontWeight: 600, fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(53,42,36,0.15)' }}>
-        Save Changes
+      {error && <ErrorText text={error} />}
+
+      <button
+        onClick={() => onSave(form)}
+        disabled={saving}
+        style={{ marginTop: 'auto', padding: '14px', borderRadius: '999px', border: 'none', backgroundColor: '#687451', color: '#FFFFFF', fontWeight: 600, fontSize: '14px', cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1, boxShadow: '0 4px 10px rgba(53,42,36,0.15)' }}
+      >
+        {saving ? 'Saving…' : 'Save Changes'}
       </button>
     </div>
   );
@@ -646,6 +750,7 @@ function MenuTab() {
   const [newDrink, setNewDrink] = useState({ name: '', retailPrice: 6, creditsCost: 6, image: '' });
   const [editingImageId, setEditingImageId] = useState<string | null>(null);
   const [imageDraft, setImageDraft] = useState('');
+  const [drinkError, setDrinkError] = useState<string | null>(null);
 
   const [calcRetail, setCalcRetail] = useState(6.0);
   const [calcCredits, setCalcCredits] = useState(6);
@@ -679,10 +784,25 @@ function MenuTab() {
 
   const submitNewDrink = async () => {
     if (!newDrink.name) return;
-    await api.adminCreateDrink(selectedCafeId, newDrink);
-    setNewDrink({ name: '', retailPrice: 6, creditsCost: 6, image: '' });
-    setAddingDrink(false);
-    refresh();
+    setDrinkError(null);
+    try {
+      await api.adminCreateDrink(selectedCafeId, newDrink);
+      setNewDrink({ name: '', retailPrice: 6, creditsCost: 6, image: '' });
+      setAddingDrink(false);
+      refresh();
+    } catch (err: any) {
+      setDrinkError(err.message || 'Could not add this drink.');
+    }
+  };
+
+  const deleteDrink = async (d: any) => {
+    if (!window.confirm(`Delete ${d.name}? This cannot be undone.`)) return;
+    try {
+      await api.adminDeleteDrink(d.id);
+      refresh();
+    } catch (err: any) {
+      window.alert(err.message || 'Could not delete this drink — disable it instead if it has redemption history.');
+    }
   };
 
   const startEditingImage = (d: any) => {
@@ -708,12 +828,12 @@ function MenuTab() {
       </div>
 
       <div style={{ display: 'flex', gap: '20px' }}>
-        <div style={{ flex: 1.4, ...card, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '0.6fr 1.6fr 1fr 1fr 1fr 0.8fr', padding: '12px 16px', backgroundColor: '#F9F5EA', fontSize: '10px', fontWeight: 700, color: '#6F6555', textTransform: 'uppercase' }}>
-            <div>Photo</div><div>Drink</div><div>Retail</div><div>Credits</div><div>Signature</div><div>Enabled</div>
+        <div style={{ flex: 1.4, ...card, overflow: 'auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '0.6fr 1.6fr 1fr 1fr 1fr 0.8fr 0.6fr', padding: '12px 16px', backgroundColor: '#F9F5EA', fontSize: '10px', fontWeight: 700, color: '#6F6555', textTransform: 'uppercase', minWidth: '560px' }}>
+            <div>Photo</div><div>Drink</div><div>Retail</div><div>Credits</div><div>Signature</div><div>Enabled</div><div>Delete</div>
           </div>
           {drinks.map((d) => (
-            <div key={d.id} style={{ display: 'grid', gridTemplateColumns: '0.6fr 1.6fr 1fr 1fr 1fr 0.8fr', padding: '12px 16px', borderTop: '1px solid #E8EBD9', alignItems: 'center', fontSize: '13px' }}>
+            <div key={d.id} style={{ display: 'grid', gridTemplateColumns: '0.6fr 1.6fr 1fr 1fr 1fr 0.8fr 0.6fr', padding: '12px 16px', borderTop: '1px solid #E8EBD9', alignItems: 'center', fontSize: '13px', minWidth: '560px' }}>
               <div>
                 {editingImageId === d.id ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', gridColumn: '1 / -1' }}>
@@ -755,6 +875,11 @@ function MenuTab() {
                       {d.isEnabled ? '●' : '○'}
                     </button>
                   </div>
+                  <div>
+                    <button onClick={() => deleteDrink(d)} style={{ background: 'none', border: 'none', fontSize: '13px', fontWeight: 700, cursor: 'pointer', color: '#B84C3E' }}>
+                      Delete
+                    </button>
+                  </div>
                 </>
               )}
             </div>
@@ -762,15 +887,18 @@ function MenuTab() {
 
           <div style={{ padding: '14px 16px', borderTop: '1px solid #E8EBD9' }}>
             {!addingDrink ? (
-              <button onClick={() => setAddingDrink(true)} style={secondaryBtn}>+ Add Drink</button>
+              <button onClick={() => { setAddingDrink(true); setDrinkError(null); }} style={secondaryBtn}>+ Add Drink</button>
             ) : (
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <input placeholder="Drink name" value={newDrink.name} onChange={(e) => setNewDrink({ ...newDrink, name: e.target.value })} style={{ ...input, width: '160px' }} />
-                <input type="number" step="0.25" placeholder="Retail $" value={newDrink.retailPrice} onChange={(e) => setNewDrink({ ...newDrink, retailPrice: Number(e.target.value) })} style={{ ...input, width: '90px' }} />
-                <input type="number" placeholder="Credits" value={newDrink.creditsCost} onChange={(e) => setNewDrink({ ...newDrink, creditsCost: Number(e.target.value) })} style={{ ...input, width: '80px' }} />
-                <input placeholder="Photo URL (optional)" value={newDrink.image} onChange={(e) => setNewDrink({ ...newDrink, image: e.target.value })} style={{ ...input, width: '200px' }} />
-                <button onClick={submitNewDrink} style={primaryBtn}>Save</button>
-                <button onClick={() => setAddingDrink(false)} style={secondaryBtn}>Cancel</button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input placeholder="Drink name" value={newDrink.name} maxLength={200} onChange={(e) => setNewDrink({ ...newDrink, name: e.target.value })} style={{ ...input, width: '160px' }} />
+                  <input type="number" step="0.25" min={0.01} max={1000} placeholder="Retail $" value={newDrink.retailPrice} onChange={(e) => setNewDrink({ ...newDrink, retailPrice: Number(e.target.value) })} style={{ ...input, width: '90px' }} />
+                  <input type="number" min={1} max={1000} placeholder="Credits" value={newDrink.creditsCost} onChange={(e) => setNewDrink({ ...newDrink, creditsCost: Number(e.target.value) })} style={{ ...input, width: '80px' }} />
+                  <input type="url" placeholder="Photo URL (optional)" value={newDrink.image} onChange={(e) => setNewDrink({ ...newDrink, image: e.target.value })} style={{ ...input, width: '200px' }} />
+                  <button onClick={submitNewDrink} style={primaryBtn}>Save</button>
+                  <button onClick={() => { setAddingDrink(false); setDrinkError(null); }} style={secondaryBtn}>Cancel</button>
+                </div>
+                {drinkError && <ErrorText text={drinkError} />}
               </div>
             )}
           </div>
@@ -780,15 +908,15 @@ function MenuTab() {
           <div style={{ fontSize: '15px', fontWeight: 600 }}>Live Pricing Calculator</div>
           <div>
             <div style={{ fontSize: '11px', color: '#6F6555', marginBottom: '4px' }}>Retail Drink Price ($)</div>
-            <input type="number" step="0.25" value={calcRetail} onChange={(e) => setCalcRetail(Number(e.target.value))} style={input} />
+            <input type="number" step="0.25" min={0} max={1000} value={calcRetail} onChange={(e) => setCalcRetail(Number(e.target.value))} style={input} />
           </div>
           <div>
             <div style={{ fontSize: '11px', color: '#6F6555', marginBottom: '4px' }}>Credit Cost (cr)</div>
-            <input type="number" step="1" value={calcCredits} onChange={(e) => setCalcCredits(Number(e.target.value))} style={input} />
+            <input type="number" step="1" min={0} max={1000} value={calcCredits} onChange={(e) => setCalcCredits(Number(e.target.value))} style={input} />
           </div>
           <div>
             <div style={{ fontSize: '11px', color: '#6F6555', marginBottom: '4px' }}>Cafe Payout Rate ($/credit)</div>
-            <input type="number" step="0.25" value={calcPayoutRate} onChange={(e) => setCalcPayoutRate(Number(e.target.value))} style={input} />
+            <input type="number" step="0.25" min={0} max={100} value={calcPayoutRate} onChange={(e) => setCalcPayoutRate(Number(e.target.value))} style={input} />
           </div>
           <div style={{ height: '1px', backgroundColor: '#E8EBD9' }} />
           <Row label="Member Value" value={calcDollarValue} color="#352A24" />
@@ -820,8 +948,14 @@ function MembersTab() {
   }, []);
   useEffect(refresh, [refresh]);
 
-  const toggleStatus = async (m: any) => {
-    await api.adminSetMemberStatus(m.id, m.status === 'MEMBER' ? 'CANCELED' : 'MEMBER');
+  // ADM-002: this used to also offer "Reactivate", which sent status:'MEMBER' —
+  // flipping any visitor straight to a paid membership with zero payment. Real
+  // membership can only ever come from a Stripe payment the member makes
+  // themselves; this admin action is deactivation-only now, matching what the
+  // backend actually allows.
+  const deactivate = async (m: any) => {
+    if (!window.confirm(`Deactivate ${m.name}'s membership? They'll lose access to redeeming until they resubscribe.`)) return;
+    await api.adminSetMemberStatus(m.id, 'CANCELED');
     refresh();
   };
 
@@ -831,12 +965,12 @@ function MembersTab() {
       {loading ? (
         <div style={{ color: '#6F6555', fontSize: '13px' }}>Loading members…</div>
       ) : (
-        <div style={{ ...card, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.4fr 1fr 1fr 1fr 0.8fr', padding: '12px 18px', backgroundColor: '#F9F5EA', fontSize: '11px', fontWeight: 700, color: '#6F6555', textTransform: 'uppercase' }}>
+        <div style={{ ...card, overflow: 'auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.4fr 1fr 1fr 1fr 0.8fr', padding: '12px 18px', backgroundColor: '#F9F5EA', fontSize: '11px', fontWeight: 700, color: '#6F6555', textTransform: 'uppercase', minWidth: '700px' }}>
             <div>Name</div><div>Email</div><div>Status</div><div>Joined</div><div>Credits</div><div>Action</div>
           </div>
           {members.map((m) => (
-            <div key={m.id} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.4fr 1fr 1fr 1fr 0.8fr', padding: '14px 18px', borderTop: '1px solid #E8EBD9', alignItems: 'center', fontSize: '13px' }}>
+            <div key={m.id} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.4fr 1fr 1fr 1fr 0.8fr', padding: '14px 18px', borderTop: '1px solid #E8EBD9', alignItems: 'center', fontSize: '13px', minWidth: '700px' }}>
               <div style={{ fontWeight: 600 }}>{m.name}</div>
               <div style={{ color: '#6F6555', fontSize: '12px' }}>{m.email}</div>
               <div>
@@ -847,9 +981,13 @@ function MembersTab() {
               <div>{new Date(m.joined).toLocaleDateString()}</div>
               <div>{m.credits}</div>
               <div>
-                <button onClick={() => toggleStatus(m)} style={secondaryBtn}>
-                  {m.status === 'MEMBER' ? 'Deactivate' : 'Reactivate'}
-                </button>
+                {m.status === 'MEMBER' ? (
+                  <button onClick={() => deactivate(m)} style={secondaryBtn}>Deactivate</button>
+                ) : (
+                  <span style={{ fontSize: '11px', color: '#A39C87' }} title="Membership can only be granted by the member paying through the app">
+                    —
+                  </span>
+                )}
               </div>
             </div>
           ))}
@@ -900,12 +1038,12 @@ function RedemptionsTab() {
       {loading ? (
         <div style={{ color: '#6F6555', fontSize: '13px' }}>Loading redemptions…</div>
       ) : (
-        <div style={{ ...card, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.2fr 1.1fr 0.6fr 0.7fr 0.7fr 0.7fr 0.8fr 0.9fr 0.7fr', padding: '12px 14px', backgroundColor: '#F9F5EA', fontSize: '10px', fontWeight: 700, color: '#6F6555', textTransform: 'uppercase' }}>
+        <div style={{ ...card, overflow: 'auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.2fr 1.1fr 0.6fr 0.7fr 0.7fr 0.7fr 0.8fr 0.9fr 0.7fr', padding: '12px 14px', backgroundColor: '#F9F5EA', fontSize: '10px', fontWeight: 700, color: '#6F6555', textTransform: 'uppercase', minWidth: '900px' }}>
             <div>Member</div><div>Cafe</div><div>Drink</div><div>Credits</div><div>Value</div><div>Payout</div><div>Margin</div><div>Status</div><div>Time</div><div>Action</div>
           </div>
           {redemptions.map((r) => (
-            <div key={r.id} style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.2fr 1.1fr 0.6fr 0.7fr 0.7fr 0.7fr 0.8fr 0.9fr 0.7fr', padding: '14px 14px', borderTop: '1px solid #E8EBD9', alignItems: 'center', fontSize: '12px' }}>
+            <div key={r.id} style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.2fr 1.1fr 0.6fr 0.7fr 0.7fr 0.7fr 0.8fr 0.9fr 0.7fr', padding: '14px 14px', borderTop: '1px solid #E8EBD9', alignItems: 'center', fontSize: '12px', minWidth: '900px' }}>
               <div>{r.member}</div><div>{r.cafe}</div><div>{r.drink}</div><div>{r.credits}</div>
               <div>${r.memberValue}</div><div>{r.cafePayout !== null ? `$${r.cafePayout}` : '—'}</div><div>{r.margin !== null ? `$${r.margin}` : '—'}</div>
               <div>{r.status}{r.status === 'VOIDED' && r.voidReason ? ` (${r.voidReason})` : ''}</div>
@@ -974,12 +1112,12 @@ function PayoutsTab() {
       ) : payouts.length === 0 ? (
         <div style={{ color: '#6F6555', fontSize: '13px' }}>No redemptions recorded for this period yet.</div>
       ) : (
-        <div style={{ ...card, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr 1fr', padding: '12px 18px', backgroundColor: '#F9F5EA', fontSize: '11px', fontWeight: 700, color: '#6F6555', textTransform: 'uppercase' }}>
+        <div style={{ ...card, overflow: 'auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr 1fr', padding: '12px 18px', backgroundColor: '#F9F5EA', fontSize: '11px', fontWeight: 700, color: '#6F6555', textTransform: 'uppercase', minWidth: '700px' }}>
             <div>Cafe</div><div>Redemptions</div><div>Credits</div><div>Amount Owed</div><div>Status</div><div>Action</div>
           </div>
           {payouts.map((p) => (
-            <div key={p.cafeId} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr 1fr', padding: '14px 18px', borderTop: '1px solid #E8EBD9', alignItems: 'center', fontSize: '13px' }}>
+            <div key={p.cafeId} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr 1fr', padding: '14px 18px', borderTop: '1px solid #E8EBD9', alignItems: 'center', fontSize: '13px', minWidth: '700px' }}>
               <div style={{ fontWeight: 600 }}>{p.cafe}</div>
               <div>{p.redemptions}</div>
               <div>{p.totalCredits}</div>
@@ -1065,6 +1203,18 @@ function BaristaSurface({ session, onDeviceRevoked }: { session: BaristaSession;
     if (tab === 'earnings') loadEarnings();
   }, [tab, loadToday, loadEarnings]);
 
+  // BAR-004: a session restored from localStorage rendered the full Scanner UI
+  // as "logged in" with no check that the device is still actually trusted —
+  // e.g. after an admin resets this cafe's PIN elsewhere. This makes the same
+  // call the Today tab already makes (which `guard` already routes through
+  // onDeviceRevoked on a trust failure) once on mount, regardless of which tab
+  // is active, so a revoked device gets bounced back to login immediately
+  // rather than only on its first real scan attempt.
+  useEffect(() => {
+    loadToday();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const submitScan = async (codeOverride?: string) => {
     const codeToSubmit = codeOverride ?? manualCode;
     if (!codeToSubmit) return;
@@ -1073,10 +1223,13 @@ function BaristaSurface({ session, onDeviceRevoked }: { session: BaristaSession;
       setScanState('error');
       return undefined;
     });
+    // BAR-001: the field only cleared on the success path — a rejected code
+    // (or a QR scan's decoded string) was left sitting in the box for the next
+    // customer instead of a blank field to type into.
+    setManualCode('');
     if (result) {
       setScanResult({ member: result.member.name, drink: result.drink.name, credits: result.credits });
       setScanState('success');
-      setManualCode('');
     }
   };
 
@@ -1181,11 +1334,12 @@ function BaristaSurface({ session, onDeviceRevoked }: { session: BaristaSession;
                 <div style={{ width: '100%', marginTop: '16px', display: 'flex', gap: '8px' }}>
                   <input
                     type="text"
+                    className="sc-scan-input"
                     placeholder="4-digit code or 6-char backup code"
                     value={manualCode}
                     onChange={(e) => setManualCode(e.target.value.toUpperCase())}
                     onKeyDown={(e) => e.key === 'Enter' && submitScan()}
-                    style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #4E5A3F', backgroundColor: '#352A24', color: '#FFFFFF', fontSize: '13px', outline: 'none' }}
+                    style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #4E5A3F', backgroundColor: '#352A24', color: '#FFFFFF', fontSize: '13px' }}
                   />
                   <button onClick={() => submitScan()} style={{ padding: '12px 18px', borderRadius: '999px', border: 'none', backgroundColor: '#687451', color: '#FFFFFF', fontWeight: 600, fontSize: '13px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(53,42,36,0.15)' }}>
                     Verify

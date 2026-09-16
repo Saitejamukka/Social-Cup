@@ -38,8 +38,8 @@ const SIGNATURE_CARD_WIDTH = 130;
 const MAX_SIGNATURE_DRINKS = 12;
 const ITEM_GAP = 12;
 
-const CATEGORY_TILE_WIDTH = 148;
-const CATEGORY_GAP = 12;
+const CATEGORY_TILE_WIDTH = 104;
+const CATEGORY_GAP = 10;
 
 // Each category maps to a `search` term that already matches a curated set of
 // cafes' vibeTags on the backend (see admin.ts's name/vibeTags search) — tapping
@@ -89,12 +89,14 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
 
   useEffect(() => {
     if (isOffline) return;
-    fetchCafes(
-      canSortByDistance && distanceSortEnabled
+    fetchCafes({
+      preferences: user?.preferences,
+      ...(canSortByDistance && distanceSortEnabled
         ? { lat: userCoords!.latitude, lng: userCoords!.longitude }
-        : undefined
-    );
-  }, [fetchCafes, isOffline, canSortByDistance, distanceSortEnabled, userCoords?.latitude, userCoords?.longitude]);
+        : {}),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchCafes, isOffline, canSortByDistance, distanceSortEnabled, userCoords?.latitude, userCoords?.longitude, user?.preferences?.join(',')]);
 
   const handleSelectCafe = (cafeId: string) => {
     navigation.navigate('CafeDetail', { cafeId });
@@ -455,27 +457,27 @@ const styles = StyleSheet.create({
   },
   categoryTile: {
     width: CATEGORY_TILE_WIDTH,
-    height: 168,
-    borderRadius: 16,
+    height: 118,
+    borderRadius: 14,
     backgroundColor: Colors.panel,
-    padding: 12,
+    padding: 8,
     overflow: 'hidden',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
   },
   categoryLabel: {
-    fontSize: 15,
+    fontSize: 11,
     fontWeight: '700',
     color: Colors.ink,
-    lineHeight: 19,
+    lineHeight: 14,
   },
   categoryImage: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    height: 96,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    height: 62,
+    borderBottomLeftRadius: 14,
+    borderBottomRightRadius: 14,
   },
   featuredCard: {
     width: FEATURED_CARD_WIDTH,

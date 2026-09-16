@@ -52,6 +52,12 @@ router.post('/generate', requireAuth, requireRole('CUSTOMER'), async (req: Authe
   if (!drink) {
     return res.status(400).json({ success: false, error: 'Invalid cafe or drink' });
   }
+  // Defense in depth against API-007: the admin endpoints now reject non-positive
+  // pricing at creation time, but this closes the same exploit for any drink that
+  // predates that validation — a zero/negative cost must never reach a redemption.
+  if (drink.creditsCost <= 0) {
+    return res.status(400).json({ success: false, error: 'This drink is not available for redemption' });
+  }
 
   if (user.credits < drink.creditsCost) {
     return res.status(400).json({ success: false, error: 'Insufficient credits', remainingCredits: user.credits });

@@ -48,18 +48,35 @@ router.post('/subscribe', requireAuth, async (req: AuthedRequest, res: Response)
     { apiVersion: Stripe.API_VERSION }
   );
 
-  const subscription = await stripe.subscriptions.create({
-    customer: customerId,
-    items: [{ price: STRIPE_PRICE_ID }],
-    payment_behavior: 'default_incomplete',
-    payment_settings: {
-      save_default_payment_method: 'on_subscription',
-      // Card stays the default; US bank account (ACH direct debit) is offered
-      // alongside it — Stripe's own PaymentElement/PaymentSheet renders the bank
-      // search + institution list natively once this is enabled, no custom UI needed.
-      payment_method_types: ['card', 'us_bank_account'],
-    },
-  });
+  // Guard against a double-tap/retry racing in before our own DB write (below)
+  // lands: check Stripe itself — the source of truth — for a subscription this
+  // customer already has in flight, and reuse it instead of creating a second
+  // one. Our `stripeSubscriptionId` column can't catch this race on its own
+  // since it's only written after the first request's Stripe calls complete.
+  const existingSubs = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 10 });
+  const reusable = existingSubs.data.find((s) =>
+    ['incomplete', 'active', 'trialing', 'past_due'].includes(s.status)
+  );
+
+  if (reusable && reusable.status !== 'incomplete') {
+    // Already paid/active from a concurrent request's webhook — nothing left to pay for.
+    return res.status(409).json({ success: false, error: 'Already a member' });
+  }
+
+  const subscription =
+    reusable ??
+    (await stripe.subscriptions.create({
+      customer: customerId,
+      items: [{ price: STRIPE_PRICE_ID }],
+      payment_behavior: 'default_incomplete',
+      payment_settings: {
+        save_default_payment_method: 'on_subscription',
+        // Card stays the default; US bank account (ACH direct debit) is offered
+        // alongside it — Stripe's own PaymentElement/PaymentSheet renders the bank
+        // search + institution list natively once this is enabled, no custom UI needed.
+        payment_method_types: ['card', 'us_bank_account'],
+      },
+    }));
 
   // As of this API version, invoices no longer carry a `payment_intent` field directly —
   // the PaymentIntent lives on the invoice's default InvoicePayment instead.

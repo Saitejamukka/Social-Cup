@@ -28,7 +28,7 @@ interface AppState {
   // ---- Cafes (fetched from the real API) ----
   cafes: ApiCafe[];
   cafesLoading: boolean;
-  fetchCafes: (params?: { neighborhood?: string; search?: string; lat?: number; lng?: number }) => Promise<void>;
+  fetchCafes: (params?: { neighborhood?: string; search?: string; lat?: number; lng?: number; preferences?: string[] }) => Promise<void>;
   getCafe: (id: string) => ApiCafe | undefined;
 
   // ---- Drink diary (fetched from the real API) ----

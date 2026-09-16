@@ -69,7 +69,9 @@ export const CafeCard: React.FC<CafeCardProps> = ({
 
         <View style={styles.footerRow}>
           <Text style={styles.price}>
-            {cafe.lowestCreditPrice !== null ? `From ${cafe.lowestCreditPrice} cr` : cafe.price}
+            {/* MOB-003: a bad/negative price should never render as e.g. "From -5 cr" —
+                fall back to the plain price-tier string ($$) instead of showing garbage. */}
+            {cafe.lowestCreditPrice !== null && cafe.lowestCreditPrice > 0 ? `From ${cafe.lowestCreditPrice} cr` : cafe.price}
           </Text>
           <Text style={styles.rating}>{cafe.rating !== null ? `★ ${cafe.rating.toFixed(1)}` : 'New'}</Text>
         </View>

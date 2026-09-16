@@ -58,11 +58,22 @@ app.use('/api/billing', billingRoutes);
 
 // 404 handler
 app.use((_req, res) => {
-  res.status(404).json({ error: 'Endpoint not found' });
+  res.status(404).json({ success: false, error: 'Endpoint not found' });
 });
 
 // Error handler — keeps stack traces out of API responses.
-app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  // body-parser attaches its own 4xx status to parse errors — malformed JSON
+  // (400) and an oversized body (413, PayloadTooLargeError) — so those should
+  // reach the client as the real client error they are, not a generic 500.
+  const bodyParserStatus = [err?.status, err?.statusCode].find(
+    (s) => typeof s === 'number' && s >= 400 && s < 500
+  );
+  if (bodyParserStatus) {
+    const message = bodyParserStatus === 413 ? 'Request body is too large' : 'Malformed request body';
+    return res.status(bodyParserStatus).json({ success: false, error: message });
+  }
+
   console.error(err);
   res.status(500).json({ success: false, error: 'Internal server error' });
 });

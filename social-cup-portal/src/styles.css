@@ -40,3 +40,10 @@ input, select, textarea, button {
   background: #DEE3C9;
   border-radius: 3px;
 }
+
+/* BAR-002: the scanner's manual-code input hardcoded outline:none with no
+   replacement, leaving keyboard users with no visible focus indicator. */
+.sc-scan-input:focus-visible {
+  outline: 2px solid #B7C49A;
+  outline-offset: 2px;
+}

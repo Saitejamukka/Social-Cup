@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { signDeviceToken, requireDeviceAuth, DeviceAuthedRequest } from '../lib/auth.js';
-import { checkPinRateLimit, recordPinFailure, resetPinRateLimit } from '../lib/rateLimit.js';
+import { checkPinRateLimit, recordPinFailure, resetPinRateLimit, checkScanRateLimit, recordScanFailure } from '../lib/rateLimit.js';
 import { sendRedemptionConfirmationEmail } from '../lib/email.js';
 
 const router = Router();
@@ -43,6 +43,18 @@ router.post('/scan', deviceAuth, async (req: DeviceAuthedRequest, res: Response)
 
   if (!code) {
     return res.status(400).json({ success: false, error: 'code is required', reason: 'invalid' });
+  }
+
+  // API-005: the numeric code space is only 4 digits (1000-9999), so brute-forcing
+  // it needs the same kind of throttling as the PIN — 20 scans/minute per cafe,
+  // then a short lockout. Successful scans never call recordScanFailure below.
+  const scanLimit = checkScanRateLimit(cafeId);
+  if (!scanLimit.allowed) {
+    return res.status(429).json({
+      success: false,
+      error: `Too many scan attempts. Try again in ${scanLimit.retryAfterSeconds}s.`,
+      reason: 'invalid',
+    });
   }
 
   const numericCode = String(code);
@@ -140,6 +152,7 @@ router.post('/scan', deviceAuth, async (req: DeviceAuthedRequest, res: Response)
     });
   } catch (err: any) {
     if (err?.reason) {
+      recordScanFailure(cafeId);
       return res.status(400).json({ success: false, error: err.message, reason: err.reason });
     }
     throw err;

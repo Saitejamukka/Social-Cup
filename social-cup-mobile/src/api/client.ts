@@ -224,8 +224,10 @@ export const api = {
     await setToken(null);
   },
 
-  listCafes: (params: { neighborhood?: string; search?: string; lat?: number; lng?: number } = {}) => {
-    const entries = Object.entries(params).filter(([, v]) => v !== undefined && v !== '');
+  listCafes: (params: { neighborhood?: string; search?: string; lat?: number; lng?: number; preferences?: string[] } = {}) => {
+    const { preferences, ...rest } = params;
+    const entries = Object.entries(rest).filter(([, v]) => v !== undefined && v !== '');
+    if (preferences && preferences.length > 0) entries.push(['preferences', preferences.join(',')]);
     const qs = new URLSearchParams(entries.map(([k, v]) => [k, String(v)])).toString();
     return request<{ cafes: ApiCafe[] }>(`/api/cafes${qs ? `?${qs}` : ''}`).then((r) => r.cafes);
   },
