@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
 import { useAppStore } from '../store/useAppStore';
-import { Colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import { ColorPalette } from '../theme/colors';
 
 import { TabNavigator } from './TabNavigator';
 import { WelcomeScreen } from '../screens/auth/WelcomeScreen';
@@ -29,6 +30,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const RootNavigator: React.FC = () => {
   const { user, authLoading, bootstrapAuth, setIsConnected } = useAppStore();
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
 
   useEffect(() => {
     bootstrapAuth();
@@ -89,11 +92,13 @@ export const RootNavigator: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.background,
-  },
-});
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
+    loading: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: Colors.background,
+    },
+  });
+}

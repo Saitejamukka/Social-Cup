@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,10 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { Colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { ColorPalette } from '../../theme/colors';
 import { BackButton } from '../../components/BackButton';
-import { PillButton } from '../../theme/buttons';
+import { createPillButtonStyles } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { NEIGHBORHOODS, PREF_OPTIONS } from '../../data/mockData';
@@ -25,6 +26,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'EditProfile'>;
 
 export const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { user, updateProfile } = useAppStore();
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const PillButton = useMemo(() => createPillButtonStyles(Colors), [Colors]);
   const [name, setName] = useState(user?.name ?? '');
   const [neighborhood, setNeighborhood] = useState(user?.neighborhood ?? NEIGHBORHOODS[0]);
   const [preferences, setPreferences] = useState<string[]>(user?.preferences ?? []);
@@ -119,7 +123,8 @@ export const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -163,7 +168,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 13,
     fontSize: 14,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     color: Colors.ink,
     marginTop: 6,
   },
@@ -179,7 +184,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     borderColor: Colors.line,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
   },
   chipActive: {
     backgroundColor: Colors.panel,
@@ -205,7 +210,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.line,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
   },
   neighborhoodItemActive: {
     backgroundColor: Colors.panel,
@@ -227,4 +232,5 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.line,
     backgroundColor: Colors.background,
   },
-});
+  });
+}

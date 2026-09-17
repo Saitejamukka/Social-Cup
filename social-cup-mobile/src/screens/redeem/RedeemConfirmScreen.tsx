@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,10 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { Colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { ColorPalette } from '../../theme/colors';
 import { BackButton } from '../../components/BackButton';
-import { PillButton } from '../../theme/buttons';
+import { createPillButtonStyles } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { api, ApiCafe } from '../../api/client';
@@ -24,6 +25,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RedeemConfirm'>;
 export const RedeemConfirmScreen: React.FC<Props> = ({ route, navigation }) => {
   const { cafeId, drinkId } = route.params;
   const { user, getCafe, generateRedemption } = useAppStore();
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const PillButton = useMemo(() => createPillButtonStyles(Colors), [Colors]);
   const [cafe, setCafe] = useState<ApiCafe | undefined>(getCafe(cafeId));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -122,7 +126,8 @@ export const RedeemConfirmScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -147,7 +152,7 @@ const styles = StyleSheet.create({
     gap: 14,
     padding: 14,
     borderRadius: 14,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.line,
   },
@@ -175,7 +180,7 @@ const styles = StyleSheet.create({
     color: Colors.mute,
   },
   breakdownCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.line,
     borderRadius: 14,
@@ -218,4 +223,5 @@ const styles = StyleSheet.create({
   confirmBtn: {
     marginTop: 'auto',
   },
-});
+  });
+}

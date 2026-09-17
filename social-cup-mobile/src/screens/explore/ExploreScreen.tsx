@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,8 @@ import { CompositeScreenProps, useFocusEffect } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, TabParamList } from '../../navigation/types';
-import { Colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { ColorPalette } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { NEIGHBORHOODS } from '../../data/mockData';
@@ -31,6 +32,8 @@ export const ExploreScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedNeighborhood, setSelectedNeighborhood] = useState('All');
   const [activeTab, setActiveTab] = useState<'all' | 'saved'>('all');
   const { savedCafeIds, cafes, cafesLoading, fetchCafes, pendingExploreQuery, setPendingExploreQuery } = useAppStore();
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
 
   const neighborhoodList = ['All', ...NEIGHBORHOODS];
 
@@ -186,7 +189,8 @@ export const ExploreScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -208,7 +212,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 14,
     borderRadius: 12,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.line,
   },
@@ -235,11 +239,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: Colors.line,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
   },
   chipActive: {
-    backgroundColor: Colors.ink,
-    borderColor: Colors.ink,
+    // Fixed dark regardless of theme — see the identical note in LoginScreen.
+    backgroundColor: Colors.darkBg,
+    borderColor: Colors.darkBg,
   },
   chipText: {
     fontSize: 12,
@@ -262,7 +267,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabBtnActive: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
   },
   tabBtnText: {
     fontSize: 13,
@@ -301,7 +306,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.line,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     marginTop: 6,
   },
   clearBtnText: {
@@ -309,4 +314,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.ink,
   },
-});
+  });
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,10 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Location from 'expo-location';
 import { RootStackParamList } from '../../navigation/types';
-import { Colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { ColorPalette } from '../../theme/colors';
 import { BackButton } from '../../components/BackButton';
-import { PillButton } from '../../theme/buttons';
+import { createPillButtonStyles } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { NEIGHBORHOODS, PREF_OPTIONS } from '../../data/mockData';
@@ -23,6 +24,9 @@ import { AnimatedPressable } from '../../components/AnimatedPressable';
 type Props = NativeStackScreenProps<RootStackParamList, 'Onboarding'>;
 
 export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const PillButton = useMemo(() => createPillButtonStyles(Colors), [Colors]);
   const [step, setStep] = useState(0);
   const [finishing, setFinishing] = useState(false);
   const [requestingLocation, setRequestingLocation] = useState(false);
@@ -212,7 +216,8 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -273,7 +278,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     borderColor: Colors.line,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
   },
   chipActive: {
     backgroundColor: Colors.panel,
@@ -298,7 +303,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.line,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
   },
   neighborhoodItemActive: {
     backgroundColor: Colors.panel,
@@ -361,4 +366,5 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.line,
     backgroundColor: Colors.background,
   },
-});
+  });
+}

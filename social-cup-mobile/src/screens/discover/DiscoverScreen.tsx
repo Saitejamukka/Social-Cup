@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,8 @@ import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, TabParamList } from '../../navigation/types';
-import { Colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { ColorPalette } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { CafeCard } from '../../components/CafeCard';
@@ -76,6 +77,8 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
     fetchCafes,
     setPendingExploreQuery,
   } = useAppStore();
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
 
   // Separate instances so dragging one carousel's DOM node never gets
   // confused with the other's on web.
@@ -330,7 +333,8 @@ export const DiscoverScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -380,7 +384,7 @@ const styles = StyleSheet.create({
     padding: 13,
     paddingHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.line,
   },
@@ -575,11 +579,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.line,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
   },
   retryBtnText: {
     fontSize: 14,
     fontWeight: '600',
     color: Colors.ink,
   },
-});
+  });
+}

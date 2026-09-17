@@ -1,12 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
 import { loadStripe, Stripe as StripeJs } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { Colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { ColorPalette } from '../../theme/colors';
 import { BackButton } from '../../components/BackButton';
-import { PillButton } from '../../theme/buttons';
+import { createPillButtonStyles } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { StripeSubscribeParams } from '../../api/client';
@@ -24,6 +25,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Payment'>;
 const CheckoutForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
   const stripe = useStripe();
   const elements = useElements();
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const PillButton = useMemo(() => createPillButtonStyles(Colors), [Colors]);
   const [submitting, setSubmitting] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,6 +85,9 @@ export const PaymentScreen: React.FC<Props> = ({ navigation }) => {
   const [stripePromise, setStripePromise] = useState<Promise<StripeJs | null> | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const startSubscription = useAppStore((s) => s.startSubscription);
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const PillButton = useMemo(() => createPillButtonStyles(Colors), [Colors]);
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -150,7 +157,8 @@ export const PaymentScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -182,7 +190,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.line,
     borderRadius: 12,
     padding: 16,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
   },
   payBtn: {
     marginTop: 'auto',
@@ -223,4 +231,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     marginTop: 10,
   },
-});
+  });
+}

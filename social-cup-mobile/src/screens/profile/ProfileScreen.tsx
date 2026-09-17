@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -15,9 +15,11 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Sun, Moon, Monitor } from 'lucide-react-native';
 import { RootStackParamList, TabParamList } from '../../navigation/types';
-import { Colors } from '../../theme/colors';
-import { PillButton } from '../../theme/buttons';
+import { useTheme, ThemeMode } from '../../theme/ThemeContext';
+import { ColorPalette } from '../../theme/colors';
+import { createPillButtonStyles } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { showAlert } from '../../utils/alert';
@@ -44,6 +46,9 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     toggleNotifReminders,
     toggleNotifRenewals,
   } = useAppStore();
+  const { colors: Colors, mode: themeMode, setMode: setThemeMode } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const PillButton = useMemo(() => createPillButtonStyles(Colors), [Colors]);
 
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
@@ -252,6 +257,32 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
               thumbColor={Colors.white}
             />
           </View>
+
+          <View style={[styles.settingRow, styles.appearanceRow]}>
+            <Text style={styles.settingLabel}>Appearance</Text>
+            <View style={styles.appearanceSegments}>
+              {(
+                [
+                  { mode: 'light' as ThemeMode, Icon: Sun, label: 'Light' },
+                  { mode: 'dark' as ThemeMode, Icon: Moon, label: 'Dark' },
+                  { mode: 'system' as ThemeMode, Icon: Monitor, label: 'System' },
+                ]
+              ).map(({ mode, Icon, label }) => {
+                const active = themeMode === mode;
+                return (
+                  <TouchableOpacity
+                    key={mode}
+                    style={[styles.appearanceSegment, active && styles.appearanceSegmentActive]}
+                    onPress={() => setThemeMode(mode)}
+                    accessibilityLabel={`${label} appearance`}
+                    accessibilityState={{ selected: active }}
+                  >
+                    <Icon size={16} color={active ? Colors.gold : Colors.pale} strokeWidth={2} />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
         </View>
 
         {/* Developer preview settings — exercise the PRD's required screen states.
@@ -293,7 +324,8 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -356,7 +388,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   creditCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.line,
     borderRadius: 14,
@@ -418,7 +450,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   settingsGroup: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.line,
     borderRadius: 14,
@@ -441,6 +473,26 @@ const styles = StyleSheet.create({
   arrow: {
     fontSize: 16,
     color: Colors.pale,
+  },
+  appearanceRow: {
+    borderBottomWidth: 0,
+  },
+  appearanceSegments: {
+    flexDirection: 'row',
+    gap: 4,
+    backgroundColor: Colors.background,
+    borderRadius: 10,
+    padding: 3,
+  },
+  appearanceSegment: {
+    width: 30,
+    height: 26,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appearanceSegmentActive: {
+    backgroundColor: Colors.panel,
   },
   demoControlsBox: {
     borderWidth: 1,
@@ -472,7 +524,7 @@ const styles = StyleSheet.create({
   simBtn: {
     borderWidth: 1,
     borderColor: Colors.line,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -499,4 +551,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.pale,
   },
-});
+  });
+}

@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { Colors } from '../../theme/colors';
-import { PillButton } from '../../theme/buttons';
+import { useTheme } from '../../theme/ThemeContext';
+import { ColorPalette } from '../../theme/colors';
+import { createPillButtonStyles } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { PopIn } from '../../components/PopIn';
 import { FadeSlideIn } from '../../components/FadeSlideIn';
@@ -14,6 +15,9 @@ import { showAlert } from '../../utils/alert';
 type Props = NativeStackScreenProps<RootStackParamList, 'VerifyEmail'>;
 
 export const VerifyEmailScreen: React.FC<Props> = ({ navigation }) => {
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const PillButton = useMemo(() => createPillButtonStyles(Colors), [Colors]);
   const [resending, setResending] = useState(false);
 
   const handleResend = async () => {
@@ -61,7 +65,8 @@ export const VerifyEmailScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -113,4 +118,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.goldDark,
   },
-});
+  });
+}

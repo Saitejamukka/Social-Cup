@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,9 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { Colors } from '../../theme/colors';
-import { PillButton } from '../../theme/buttons';
+import { useTheme } from '../../theme/ThemeContext';
+import { ColorPalette } from '../../theme/colors';
+import { createPillButtonStyles } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { FAIL_REASONS } from '../../data/mockData';
 import { PopIn } from '../../components/PopIn';
@@ -22,6 +23,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RedeemFailed'>;
 export const RedeemFailedScreen: React.FC<Props> = ({ route, navigation }) => {
   const { cafeId, reason = 'expired' } = route.params;
   const currentReason = FAIL_REASONS[reason];
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const PillButton = useMemo(() => createPillButtonStyles(Colors), [Colors]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -46,7 +50,8 @@ export const RedeemFailedScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -88,4 +93,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 36,
     marginTop: 14,
   },
-});
+  });
+}

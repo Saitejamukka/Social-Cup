@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,8 +12,9 @@ import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, TabParamList } from '../../navigation/types';
-import { Colors } from '../../theme/colors';
-import { PillButton } from '../../theme/buttons';
+import { useTheme } from '../../theme/ThemeContext';
+import { ColorPalette } from '../../theme/colors';
+import { createPillButtonStyles } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { FadeSlideIn } from '../../components/FadeSlideIn';
@@ -26,6 +27,9 @@ type Props = CompositeScreenProps<
 
 export const DiaryScreen: React.FC<Props> = ({ navigation }) => {
   const { diary, diaryLoading, fetchDiary, openRateModal } = useAppStore();
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const PillButton = useMemo(() => createPillButtonStyles(Colors), [Colors]);
 
   useEffect(() => {
     fetchDiary();
@@ -93,7 +97,8 @@ export const DiaryScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -125,7 +130,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 12,
     borderRadius: 14,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.line,
   },
@@ -196,4 +201,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     marginTop: 6,
   },
-});
+  });
+}

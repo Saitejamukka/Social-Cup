@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,10 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { Colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { ColorPalette } from '../../theme/colors';
 import { BackButton } from '../../components/BackButton';
-import { PillButton } from '../../theme/buttons';
+import { createPillButtonStyles } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { CAFES, CONNECTIONS, INITIAL_ACTIVITY } from '../../data/mockData';
@@ -22,6 +23,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Social'>;
 
 export const SocialScreen: React.FC<Props> = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState<'activity' | 'saved' | 'meetup'>('activity');
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const PillButton = useMemo(() => createPillButtonStyles(Colors), [Colors]);
   const {
     savedCafeIds,
     connectionsSelected,
@@ -209,7 +213,8 @@ export const SocialScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -243,7 +248,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabBtnActive: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
   },
   tabBtnText: {
     fontSize: 12,
@@ -264,7 +269,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.line,
     alignItems: 'center',
@@ -311,7 +316,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.line,
   },
@@ -359,11 +364,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: Colors.line,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
   },
   connChipActive: {
-    backgroundColor: Colors.ink,
-    borderColor: Colors.ink,
+    // Fixed dark regardless of theme — see the identical note in LoginScreen.
+    backgroundColor: Colors.darkBg,
+    borderColor: Colors.darkBg,
   },
   connChipText: {
     fontSize: 12,
@@ -379,7 +385,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 14,
     borderRadius: 12,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.line,
   },
@@ -418,4 +424,5 @@ const styles = StyleSheet.create({
     color: Colors.success,
     textAlign: 'center',
   },
-});
+  });
+}

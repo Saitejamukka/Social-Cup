@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, DarkTheme, Theme } from '@react-navigation/native';
 import { View, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import * as RN from 'react-native';
 import {
@@ -21,6 +21,7 @@ import { RateModal } from './src/components/RateModal';
 import { StripeRoot } from './src/components/StripeRoot';
 import { Colors } from './src/theme/colors';
 import { Fonts } from './src/theme/typography';
+import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 
 // Inter becomes the app-wide default for every <Text>/<TextInput> that doesn't
 // specify its own fontFamily, replacing the OS default. Screens that explicitly
@@ -88,12 +89,49 @@ export default function App() {
   injectWebFocusReset();
 
   return (
+    <ThemeProvider>
+      <AppShell />
+    </ThemeProvider>
+  );
+}
+
+// Split out from App() so it can call useTheme() — which needs a ThemeProvider
+// ancestor, so it can't be called in App() itself above where that's mounted.
+function AppShell() {
+  const { colors, scheme } = useTheme();
+
+  // React Navigation renders its own default scene backgrounds (stack screen
+  // containers, tab scene containers) using whatever theme is passed to
+  // NavigationContainer — and falls back to its built-in light theme
+  // (background '#fff') if none is given. That default white was showing
+  // through in dark mode wherever our own UI clips its background with a
+  // border radius (e.g. CustomTabBar's rounded top corners), since the
+  // corner cutout reveals this navigation-level background, not ours.
+  const navTheme: Theme = useMemo(() => {
+    const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
+    return {
+      ...base,
+      colors: {
+        ...base.colors,
+        background: colors.background,
+        card: colors.surface,
+        border: colors.line,
+        text: colors.ink,
+        primary: colors.gold,
+      },
+    };
+  }, [scheme, colors]);
+
+  return (
     <SafeAreaProvider>
-      <View style={styles.outerContainer}>
-        <View style={styles.phoneContainer}>
+      <View style={[styles.outerContainer, { backgroundColor: Platform.OS === 'web' ? colors.panel : colors.background }]}>
+        <View style={[styles.phoneContainer, { backgroundColor: colors.background, borderColor: colors.line }]}>
           <StripeRoot>
-            <NavigationContainer>
-              <StatusBar style="dark" />
+            <NavigationContainer theme={navTheme}>
+              {/* expo-status-bar's "auto" reads the OS theme directly, which would
+                  fight our own light/dark/system choice — tie it explicitly to the
+                  resolved scheme instead so it always matches what's on screen. */}
+              <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
               <RootNavigator />
               <RateModal />
             </NavigationContainer>

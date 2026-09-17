@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,8 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import QRCode from 'react-native-qrcode-svg';
 import { RootStackParamList } from '../../navigation/types';
-import { Colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { ColorPalette } from '../../theme/colors';
 import { BackButton } from '../../components/BackButton';
 import { useAppStore } from '../../store/useAppStore';
 import { api } from '../../api/client';
@@ -22,6 +23,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RedeemCode'>;
 export const RedeemCodeScreen: React.FC<Props> = ({ route, navigation }) => {
   const { cafeId, drinkId } = route.params;
   const { activeRedemption, cancelActiveRedemption, refreshUser } = useAppStore();
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const [secondsLeft, setSecondsLeft] = useState(300);
   const navigatedAway = useRef(false);
 
@@ -118,7 +121,8 @@ export const RedeemCodeScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -183,4 +187,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.mute,
   },
-});
+  });
+}

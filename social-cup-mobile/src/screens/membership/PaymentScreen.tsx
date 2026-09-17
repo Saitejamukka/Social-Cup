@@ -1,11 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useStripe } from '@stripe/stripe-react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { Colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { ColorPalette } from '../../theme/colors';
 import { BackButton } from '../../components/BackButton';
-import { PillButton } from '../../theme/buttons';
+import { createPillButtonStyles } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { StripeSubscribeParams } from '../../api/client';
@@ -20,6 +21,9 @@ export const PaymentScreen: React.FC<Props> = ({ navigation }) => {
   const [error, setError] = useState<string | null>(null);
   const startSubscription = useAppStore((s) => s.startSubscription);
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const PillButton = useMemo(() => createPillButtonStyles(Colors), [Colors]);
   // initPaymentSheet must run exactly once per fetched PaymentIntent — re-running it
   // (e.g. from a StrictMode double-render) against an already-initialized sheet errors.
   const initialized = useRef(false);
@@ -140,7 +144,8 @@ export const PaymentScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -206,4 +211,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     marginTop: 10,
   },
-});
+  });
+}

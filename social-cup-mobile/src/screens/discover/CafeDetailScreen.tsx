@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,9 +12,10 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { Colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { ColorPalette } from '../../theme/colors';
 import { BackButton } from '../../components/BackButton';
-import { PillButton } from '../../theme/buttons';
+import { createPillButtonStyles } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { api, ApiCafe } from '../../api/client';
@@ -36,6 +37,9 @@ export const CafeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   // window width badly over-zoomed it once resizeMode="cover" scaled to fill that width.
   const [galleryWidth, setGalleryWidth] = useState(0);
   const galleryDrag = useDragToScroll();
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const PillButton = useMemo(() => createPillButtonStyles(Colors), [Colors]);
 
   useEffect(() => {
     if (!cafe) {
@@ -223,7 +227,8 @@ export const CafeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -391,7 +396,7 @@ const styles = StyleSheet.create({
   rateBtn: {
     borderWidth: 1,
     borderColor: Colors.line,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -420,4 +425,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.mute,
   },
-});
+  });
+}

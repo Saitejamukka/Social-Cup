@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,10 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { Colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { ColorPalette } from '../../theme/colors';
 import { BackButton } from '../../components/BackButton';
-import { PillButton } from '../../theme/buttons';
+import { createPillButtonStyles } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { FadeSlideIn } from '../../components/FadeSlideIn';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
@@ -26,6 +27,9 @@ const BENEFITS = [
 ];
 
 export const MembershipScreen: React.FC<Props> = ({ navigation }) => {
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const PillButton = useMemo(() => createPillButtonStyles(Colors), [Colors]);
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -74,7 +78,8 @@ export const MembershipScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -111,7 +116,7 @@ const styles = StyleSheet.create({
     color: Colors.mute,
   },
   creditsBanner: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.line,
     borderRadius: 14,
@@ -159,4 +164,5 @@ const styles = StyleSheet.create({
   subscribeBtn: {
     marginTop: 8,
   },
-});
+  });
+}

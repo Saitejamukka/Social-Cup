@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { ApiCafe } from '../api/client';
-import { Colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import { ColorPalette } from '../theme/colors';
 import { useAppStore } from '../store/useAppStore';
 import { AnimatedPressable } from './AnimatedPressable';
 
@@ -16,6 +18,8 @@ export const CafeCard: React.FC<CafeCardProps> = ({
   showSaveButton = false,
 }) => {
   const { savedCafeIds, toggleSaveCafe } = useAppStore();
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const isSaved = savedCafeIds.includes(cafe.id);
 
   return (
@@ -80,12 +84,13 @@ export const CafeCard: React.FC<CafeCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   card: {
     flexDirection: 'row',
     gap: 12,
     padding: 12,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: Colors.line,
@@ -146,4 +151,5 @@ const styles = StyleSheet.create({
     color: Colors.ink,
     fontWeight: '600',
   },
-});
+  });
+}

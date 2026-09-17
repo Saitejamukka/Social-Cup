@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { Colors } from '../../theme/colors';
-import { PillButton } from '../../theme/buttons';
+import { useTheme } from '../../theme/ThemeContext';
+import { ColorPalette } from '../../theme/colors';
+import { createPillButtonStyles } from '../../theme/buttons';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
 import { api, ApiCafe } from '../../api/client';
@@ -16,6 +17,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RedeemSuccess'>;
 export const RedeemSuccessScreen: React.FC<Props> = ({ route, navigation }) => {
   const { cafeId, drinkId } = route.params;
   const { user, getCafe, openRateModal } = useAppStore();
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const PillButton = useMemo(() => createPillButtonStyles(Colors), [Colors]);
   const [cafe, setCafe] = useState<ApiCafe | undefined>(getCafe(cafeId));
 
   useEffect(() => {
@@ -82,7 +86,8 @@ export const RedeemSuccessScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.darkBg,
@@ -151,4 +156,5 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.6)',
     fontSize: 13,
   },
-});
+  });
+}

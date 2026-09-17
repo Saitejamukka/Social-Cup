@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { Colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { ColorPalette } from '../../theme/colors';
 import { BackButton } from '../../components/BackButton';
 import { Fonts } from '../../theme/typography';
 import { useAppStore } from '../../store/useAppStore';
@@ -24,6 +25,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RedeemPicker'>;
 export const RedeemPickerScreen: React.FC<Props> = ({ route, navigation }) => {
   const { cafeId } = route.params;
   const { user, getCafe } = useAppStore();
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const [cafe, setCafe] = useState<ApiCafe | undefined>(getCafe(cafeId));
 
   useEffect(() => {
@@ -97,7 +100,8 @@ export const RedeemPickerScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -135,7 +139,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.line,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
   },
   drinkCardDisabled: {
     opacity: 0.5,
@@ -177,4 +181,5 @@ const styles = StyleSheet.create({
     color: Colors.danger,
     marginTop: 2,
   },
-});
+  });
+}

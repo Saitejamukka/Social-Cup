@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,11 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { Colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { ColorPalette } from '../../theme/colors';
 import { BackButton } from '../../components/BackButton';
 import { Fonts } from '../../theme/typography';
-import { PillButton } from '../../theme/buttons';
+import { createPillButtonStyles } from '../../theme/buttons';
 import { useAppStore } from '../../store/useAppStore';
 import { api, ApiError } from '../../api/client';
 import { useGoogleAuthRequest, extractGoogleIdToken } from '../../auth/googleAuth';
@@ -33,6 +34,9 @@ const appleComingSoon = () =>
   showAlert('Coming soon', 'Apple sign-in is being set up and will be available shortly.');
 
 export const LoginScreen: React.FC<Props> = ({ navigation }) => {
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const PillButton = useMemo(() => createPillButtonStyles(Colors), [Colors]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -188,7 +192,8 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -222,7 +227,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.line,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
   },
   googleBtnText: {
     fontSize: 14,
@@ -236,7 +241,11 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 14,
     borderRadius: 10,
-    backgroundColor: Colors.ink,
+    // Apple's own branding wants this button black in both light and dark mode,
+    // not inverted like the rest of the UI — Colors.darkBg stays a fixed dark
+    // tone in both palettes (unlike Colors.ink, which flips to a light cream in
+    // dark mode and would turn this into a pale button with invisible white text).
+    backgroundColor: Colors.darkBg,
   },
   appleBtnText: {
     fontSize: 14,
@@ -276,7 +285,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 13,
     fontSize: 14,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     color: Colors.ink,
   },
   forgotBtn: {
@@ -294,4 +303,5 @@ const styles = StyleSheet.create({
   submitBtn: {
     marginTop: 10,
   },
-});
+  });
+}

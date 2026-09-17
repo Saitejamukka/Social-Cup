@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Modal,
   View,
@@ -9,7 +9,8 @@ import {
   Pressable,
   ActivityIndicator,
 } from 'react-native';
-import { Colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import { ColorPalette } from '../theme/colors';
 import { Fonts } from '../theme/typography';
 import { useAppStore } from '../store/useAppStore';
 import { api, ApiCafe } from '../api/client';
@@ -28,6 +29,8 @@ export const RateModal: React.FC = () => {
     getCafe,
   } = useAppStore();
 
+  const { colors: Colors } = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const [cafe, setCafe] = useState<ApiCafe | undefined>();
   const [submitting, setSubmitting] = useState(false);
 
@@ -116,14 +119,15 @@ export const RateModal: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorPalette) {
+  return StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(36, 28, 22, 0.55)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 24,
@@ -189,4 +193,5 @@ const styles = StyleSheet.create({
     color: Colors.mute,
     fontSize: 13,
   },
-});
+  });
+}
